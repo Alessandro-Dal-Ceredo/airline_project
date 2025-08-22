@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Nuovo Volo - Dashboard Compagnia{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-plane"></i>
+                    Aggiungi Nuovo Volo
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if not tratte %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Nessuna tratta disponibile!</strong>
+                    <p class="mb-0">Devi prima creare almeno una tratta prima di poter aggiungere voli.</p>
+                    <a href="{{ url_for('nuova_tratta') }}" class="btn btn-warning btn-sm mt-2">
+                        <i class="fas fa-plus"></i> Crea Nuova Tratta
+                    </a>
+                </div>
+                {% elif not aerei %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Nessun aereo disponibile!</strong>
+                    <p class="mb-0">Devi prima aggiungere almeno un aereo alla flotta prima di poter creare voli.</p>
+                    <a href="{{ url_for('nuovo_aereo') }}" class="btn btn-warning btn-sm mt-2">
+                        <i class="fas fa-plus"></i> Aggiungi Aereo
+                    </a>
+                </div>
+                {% else %}
+                <form method="POST">
+                    <!-- Selezione Tratta -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-route"></i> Tratta</h5>
+                        <div class="mb-3">
+                            <label for="tratta_id" class="form-label">Seleziona Tratta *</label>
+                            <select class="form-select" id="tratta_id" name="tratta_id" required>
+                                <option value="">Scegli una tratta</option>
+                                {% for tratta in tratte %}
+                                <option value="{{ tratta.id }}">
+                                    {{ tratta.aeroporto_partenza }} → {{ tratta.aeroporto_arrivo }}
+                                    ({{ tratta.aeroporto_partenza_obj.citta }} → {{ tratta.aeroporto_arrivo_obj.citta }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Selezione Aereo -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-plane"></i> Aereo</h5>
+                        <div class="mb-3">
+                            <label for="aereo_id" class="form-label">Seleziona Aereo *</label>
+                            <select class="form-select" id="aereo_id" name="aereo_id" required>
+                                <option value="">Scegli un aereo</option>
+                                {% for aereo in aerei %}
+                                <option value="{{ aereo.id }}">
+                                    {{ aereo.modello }} 
+                                    ({{ aereo.posti_totali }} posti: 
+                                     {{ aereo.posti_economy }}E
+                                     {% if aereo.posti_business > 0 %} + {{ aereo.posti_business }}B{% endif %}
+                                     {% if aereo.posti_first > 0 %} + {{ aereo.posti_first }}F{% endif %})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Date e Orari -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-clock"></i> Orari del Volo</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="data_partenza" class="form-label">Data Partenza *</label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="data_partenza" 
+                                       name="data_partenza" 
+                                       min="{{ today }}"
+                                       required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="ora_partenza" class="form-label">Ora Partenza *</label>
+                                <input type="time" 
+                                       class="form-control" 
+                                       id="ora_partenza" 
+                                       name="ora_partenza" 
+                                       required>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-6">
+                                <label for="data_arrivo" class="form-label">Data Arrivo *</label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="data_arrivo" 
+                                       name="data_arrivo" 
+                                       min="{{ today }}"
+                                       required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="ora_arrivo" class="form-label">Ora Arrivo *</label>
+                                <input type="time" 
+                                       class="form-control" 
+                                       id="ora_arrivo" 
+                                       name="ora_arrivo" 
+                                       required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prezzi -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-euro-sign"></i> Prezzi per Classe</h5>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="prezzo_economy" class="form-label">
+                                    <i class="fas fa-chair text-primary"></i> Economy (€) *
+                                </label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="prezzo_economy" 
+                                       name="prezzo_economy" 
+                                       min="1" 
+                                       max="2000" 
+                                       step="0.01"
+                                       placeholder="Es. 99.99"
+                                       required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="prezzo_business" class="form-label">
+                                    <i class="fas fa-chair text-warning"></i> Business (€)
+                                </label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="prezzo_business" 
+                                       name="prezzo_business" 
+                                       min="1" 
+                                       max="5000" 
+                                       step="0.01"
+                                       placeholder="Es. 299.99">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="prezzo_first" class="form-label">
+                                    <i class="fas fa-chair text-success"></i> First Class (€)
+                                </label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="prezzo_first" 
+                                       name="prezzo_first" 
+                                       min="1" 
+                                       max="10000" 
+                                       step="0.01"
+                                       placeholder="Es. 999.99">
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle"></i> 
+                            Il prezzo Economy è obbligatorio. Business e First sono opzionali.
+                        </small>
+                    </div>
+
+                    <!-- Anteprima Volo -->
+                    <div class="card mb-4" id="preview-volo" style="display: none;">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-eye"></i> Anteprima Volo</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-4">
+                                    <div class="h6 text-primary" id="preview-partenza-info"></div>
+                                    <div class="text-muted" id="preview-data-partenza"></div>
+                                </div>
+                                <div class="col-md-4">
+                                    <i class="fas fa-plane fa-2x text-muted"></i>
+                                    <div class="mt-2">
+                                        <small class="text-muted" id="preview-aereo"></small><br>
+                                        <small class="text-muted" id="preview-durata"></small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="h6 text-success" id="preview-arrivo-info"></div>
+                                    <div class="text-muted" id="preview-data-arrivo"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('dashboard_compagnia') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Torna alla Dashboard
+                        </a>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Crea Volo
+                        </button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Anteprima del volo
+function aggiornaAnteprimaVolo() {
+    const trattaSelect = document.getElementById('tratta_id');
+    const aereoSelect = document.getElementById('aereo_id');
+    const dataPartenza = document.getElementById('data_partenza').value;
+    const oraPartenza = document.getElementById('ora_partenza').value;
+    const dataArrivo = document.getElementById('data_arrivo').value;
+    const oraArrivo = document.getElementById('ora_arrivo').value;
+    
+    const previewCard = document.getElementById('preview-volo');
+    
+    if (trattaSelect.value && dataPartenza && oraPartenza && dataArrivo && oraArrivo) {
+        previewCard.style.display = 'block';
+        
+        // Informazioni tratta
+        const trattaTesto = trattaSelect.options[trattaSelect.selectedIndex].text;
+        const [codiciAeroporti, cittaAeroporti] = trattaTesto.split(' (');
+        const [partenza, arrivo] = codiciAeroporti.split(' → ');
+        
+        document.getElementById('preview-partenza-info').textContent = partenza;
+        document.getElementById('preview-arrivo-info').textContent = arrivo;
+        
+        // Date formattate
+        document.getElementById('preview-data-partenza').innerHTML = 
+            `${formatDate(dataPartenza)}<br>${oraPartenza}`;
+        document.getElementById('preview-data-arrivo').innerHTML = 
+            `${formatDate(dataArrivo)}<br>${oraArrivo}`;
+        
+        // Informazioni aereo
+        if (aereoSelect.value) {
+            const aereoTesto = aereoSelect.options[aereoSelect.selectedIndex].text;
+            document.getElementById('preview-aereo').textContent = aereoTesto;
+        }
+        
+        // Calcola durata (approssimativa)
+        const partenzaDate = new Date(`${dataPartenza}T${oraPartenza}`);
+        const arrivoDate = new Date(`${dataArrivo}T${oraArrivo}`);
+        const durataMs = arrivoDate - partenzaDate;
+        
+        if (durataMs > 0) {
+            const durata = Math.floor(durataMs / (1000 * 60 * 60)); // ore
+            const minuti = Math.floor((durataMs % (1000 * 60 * 60)) / (1000 * 60));
+            document.getElementById('preview-durata').textContent = `Durata: ${durata}h ${minuti}m`;
+        } else {
+            document.getElementById('preview-durata').textContent = 'Durata: Non valida';
+        }
+    } else {
+        previewCard.style.display = 'none';
+    }
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('it-IT', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short' 
+    });
+}
+
+// Event listeners per anteprima
+document.getElementById('tratta_id').addEventListener('change', aggiornaAnteprimaVolo);
+document.getElementById('aereo_id').addEventListener('change', aggiornaAnteprimaVolo);
+document.getElementById('data_partenza').addEventListener('change', function() {
+    // Auto-imposta data arrivo uguale a partenza se non impostata
+    const dataArrivo = document.getElementById('data_arrivo');
+    if (!dataArrivo.value) {
+        dataArrivo.value = this.value;
+    }
+    aggiornaAnteprimaVolo();
+});
+document.getElementById('ora_partenza').addEventListener('change', aggiornaAnteprimaVolo);
+document.getElementById('data_arrivo').addEventListener('change', aggiornaAnteprimaVolo);
+document.getElementById('ora_arrivo').addEventListener('change', aggiornaAnteprimaVolo);
+
+// Imposta data minima a oggi
+const oggi = new Date().toISOString().split('T')[0];
+document.getElementById('data_partenza').min = oggi;
+document.getElementById('data_arrivo').min = oggi;
+
+// Suggerimenti per i prezzi
+document.getElementById('prezzo_economy').addEventListener('input', function() {
+    const economyValue = parseFloat(this.value);
+    if (economyValue > 0) {
+        const businessField = document.getElementById('prezzo_business');
+        const firstField = document.getElementById('prezzo_first');
+        
+        // Suggerisci prezzi business e first se vuoti
+        if (!businessField.value) {
+            businessField.placeholder = `Suggerito: ${(economyValue * 2.5).toFixed(2)}`;
+        }
+        if (!firstField.value) {
+            firstField.placeholder = `Suggerito: ${(economyValue * 4).toFixed(2)}`;
+        }
+    }
+});
+</script>
+{% endblock %}

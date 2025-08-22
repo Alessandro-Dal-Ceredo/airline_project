@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Compagnia - {{ compagnia.nome_compagnia }}{% endblock %}
+
+{% block content %}
+<!-- Header Dashboard -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1>
+                    {{ compagnia.nome_compagnia }}
+                </h1>
+                <p>Dashboard Gestione Compagnia Aerea</p>
+            </div>
+            <div>
+                <span class="badge">
+                    {{ current_user.username }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiche Generali -->
+<div class="row mb-5">
+    <div class="col-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="mb-2">
+                    <span style="font-size: 2em;">✈️</span>
+                </div>
+                <h3>{{ num_voli }}</h3>
+                <p>Voli Attivi</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="mb-2">
+                    <span style="font-size: 2em;">🛩️</span>
+                </div>
+                <h3>{{ num_aerei }}</h3>
+                <p>Aerei in Flotta</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="mb-2">
+                    <span style="font-size: 2em;">🗺️</span>
+                </div>
+                <h3>{{ num_tratte }}</h3>
+                <p>Tratte Servite</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="mb-2">
+                    <span style="font-size: 2em;">💰</span>
+                </div>
+                <h3>€ 0</h3>
+                <p>Ricavi del Mese</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs per Gestione -->
+<div class="row">
+    <div class="col-12">
+        <ul class="nav-tabs" id="managementTabs">
+            <li class="active">
+                <a href="#voli" id="voli-tab">
+                    Gestione Voli
+                </a>
+            </li>
+            <li>
+                <a href="#aerei" id="aerei-tab">
+                    Flotta Aerei
+                </a>
+            </li>
+            <li>
+                <a href="#tratte" id="tratte-tab">
+                    Tratte
+                </a>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="managementTabsContent">
+            <!-- Tab Voli -->
+            <div class="tab-pane active" id="voli">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5>I Tuoi Voli</h5>
+                            <div class="btn-group">
+                                <a href="{{ url_for('gestione_voli') }}" class="btn">
+                                    Vedi Tutti
+                                </a>
+                                <a href="{{ url_for('nuovo_volo') }}" class="btn">
+                                    Nuovo Volo
+                                </a>
+                            </div>
+                        </div>
+                        {% if num_voli > 0 %}
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID Volo</th>
+                                        <th>Tratta</th>
+                                        <th>Aereo</th>
+                                        <th>Partenza</th>
+                                        <th>Arrivo</th>
+                                        <th>Posti Disponibili</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for volo in voli_recenti %}
+                                    <tr>
+                                        <td><strong>{{ volo.id }}</strong></td>
+                                        <td>
+                                            <span class="badge">{{ volo.tratta.aeroporto_partenza }}</span>
+                                            →
+                                            <span class="badge">{{ volo.tratta.aeroporto_arrivo }}</span>
+                                        </td>
+                                        <td>{{ volo.aereo.modello }}</td>
+                                        <td>
+                                            <small>{{ volo.partenza.strftime('%d/%m/%Y') }}</small><br>
+                                            <strong>{{ volo.partenza.strftime('%H:%M') }}</strong>
+                                        </td>
+                                        <td>
+                                            <small>{{ volo.arrivo.strftime('%d/%m/%Y') }}</small><br>
+                                            <strong>{{ volo.arrivo.strftime('%H:%M') }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge">
+                                                {{ volo.posti_disponibili }}/{{ volo.aereo.posti_totali }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('modifica_volo', volo_id=volo.id) }}" class="btn" title="Modifica">
+                                                    ✏️
+                                                </a>
+                                                <form method="POST" action="{{ url_for('elimina_volo', volo_id=volo.id) }}" style="display: inline;" onsubmit="return confirm('Sei sicuro di voler eliminare questo volo?')">
+                                                    <button type="submit" class="btn" title="Elimina">
+                                                        X
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% if not voli_recenti %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">
+                                            ✈️ Nessun volo programmato
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <div class="text-center">
+                                <div style="font-size: 3em;">✈️</div>
+                                <h5>Nessun Volo Programmato</h5>
+                                <p>Inizia aggiungendo il tuo primo volo!</p>
+                                <a href="{{ url_for('nuovo_volo') }}" class="btn">
+                                    ➕ Aggiungi Volo
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab Aerei -->
+            <div class="tab-pane" id="aerei">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5>🛩️ Flotta Aerei</h5>
+                            <a href="{{ url_for('nuovo_aereo') }}" class="btn">
+                                ➕ Nuovo Aereo
+                            </a>
+                        </div>
+                        {% if num_aerei > 0 %}
+                            <div class="row">
+                                {% for aereo in compagnia.aerei %}
+                                <div class="col-4">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6>
+                                                ✈️ {{ aereo.modello }}
+                                            </h6>
+                                            <div>
+                                                <small>Posti Totali:</small>
+                                                <strong>{{ aereo.posti_totali }}</strong>
+                                            </div>
+                                            <div class="row text-center mt-3">
+                                                <div class="col-4">
+                                                    <div>
+                                                        <small>Economy</small><br>
+                                                        <strong>{{ aereo.posti_economy }}</strong>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div>
+                                                        <small>Business</small><br>
+                                                        <strong>{{ aereo.posti_business }}</strong>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div>
+                                                        <small>First</small><br>
+                                                        <strong>{{ aereo.posti_first }}</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="padding: 10px; border-top: 1px solid #000;">
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('modifica_aereo', aereo_id=aereo.id) }}" class="btn" title="Modifica">
+                                                    ✏️ Modifica
+                                                </a>
+                                                <form method="POST" action="{{ url_for('elimina_aereo', aereo_id=aereo.id) }}" style="display: inline;" onsubmit="return confirm('Sei sicuro di voler eliminare questo aereo?')">
+                                                    <button type="submit" class="btn" title="Elimina">
+                                                        X Elimina
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center">
+                                <div style="font-size: 3em;">🛩️</div>
+                                <h5>Nessun Aereo in Flotta</h5>
+                                <p>Aggiungi aerei alla tua flotta per iniziare a operare!</p>
+                                <a href="{{ url_for('nuovo_aereo') }}" class="btn">
+                                    ➕ Aggiungi Aereo
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab Tratte -->
+            <div class="tab-pane" id="tratte">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5>🗺️ Tratte Servite</h5>
+                            <a href="{{ url_for('nuova_tratta') }}" class="btn">
+                                ➕ Nuova Tratta
+                            </a>
+                        </div>
+                        {% if num_tratte > 0 %}
+                            <div class="row">
+                                {% for tratta in compagnia.tratte %}
+                                <div class="col-4">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h5>
+                                                {{ tratta.aeroporto_partenza }} 
+                                                → 
+                                                {{ tratta.aeroporto_arrivo }}
+                                            </h5>
+                                            <div class="mb-2">
+                                                <span class="badge">
+                                                    {{ tratta.aeroporto_partenza_obj.citta if tratta.aeroporto_partenza_obj }}
+                                                </span>
+                                                →
+                                                <span class="badge">
+                                                    {{ tratta.aeroporto_arrivo_obj.citta if tratta.aeroporto_arrivo_obj }}
+                                                </span>
+                                            </div>
+                                            <small>
+                                                {{ tratta.voli|length }} voli programmati
+                                            </small>
+                                        </div>
+                                        <div style="padding: 10px; border-top: 1px solid #000;">
+                                            <div class="btn-group">
+                                                <button class="btn" title="Vedi Voli">
+                                                    👁️ Voli
+                                                </button>
+                                                <form method="POST" action="{{ url_for('elimina_tratta', tratta_id=tratta.id) }}" style="display: inline;" onsubmit="return confirm('Sei sicuro di voler eliminare questa tratta?')">
+                                                    <button type="submit" class="btn" title="Elimina">
+                                                        X Elimina
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center">
+                                <div style="font-size: 3em;">🗺️</div>
+                                <h5>Nessuna Tratta Servita</h5>
+                                <p>Aggiungi tratte per iniziare a offrire voli!</p>
+                                <a href="{{ url_for('nuova_tratta') }}" class="btn">
+                                    ➕ Aggiungi Tratta
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

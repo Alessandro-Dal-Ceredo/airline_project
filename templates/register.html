@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrazione - BD Airline</title>
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body class="register-page">
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1001; width: 90%; max-width: 500px;">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Register Page Container -->
+    <div class="register-page">
+        <div class="register-container">
+            <div class="register-card">
+                <div class="register-header">
+                    <h4>
+                         Registrazione BD Airline
+                    </h4>
+                </div>
+                
+                <div class="register-body">
+                    <form method="POST" id="registerForm">
+                        
+                        <!-- Dati base -->
+                        <div class="register-form-row">
+                            <div class="register-form-group">
+                                <label for="username" style="display: block; margin-bottom: 5px; font-weight: 600;">Username *</label>
+                                <input type="text" id="username" name="username" required 
+                                       style="width: 100%; padding: 12px; border: 1px solid var(--grey-medium); border-radius: 6px; font-size: 16px;">
+                            </div>
+                            <div class="register-form-group">
+                                <label for="email" style="display: block; margin-bottom: 5px; font-weight: 600;">Email *</label>
+                                <input type="email" id="email" name="email" required 
+                                       style="width: 100%; padding: 12px; border: 1px solid var(--grey-medium); border-radius: 6px; font-size: 16px;">
+                            </div>
+                        </div>
+                        
+                        <div class="register-form-group">
+                            <label for="password" style="display: block; margin-bottom: 5px; font-weight: 600;">Password *</label>
+                            <input type="password" id="password" name="password" required 
+                                   style="width: 100%; padding: 12px; border: 1px solid var(--grey-medium); border-radius: 6px; font-size: 16px;">
+                        </div>
+                        
+                        <!-- Tipo di account -->
+                        <div class="register-form-group">
+                            <label style="display: block; margin-bottom: 10px; font-weight: 600; text-align: center;">Tipo di account *</label>
+                            <div class="register-radio-group">
+                                <div class="register-radio-option selected" id="optionPasseggero">
+                                    <input type="radio" name="tipo" id="tipoPasseggero" value="passeggero" checked>
+                                    <span>Passeggero</span>
+                                </div>
+                                <div class="register-radio-option" id="optionCompagnia">
+                                    <input type="radio" name="tipo" id="tipoCompagnia" value="compagnia">
+                                    <span>Compagnia Aerea</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Campi specifici passeggero -->
+                        <div id="campiPasseggero">
+                            <div class="register-form-row">
+                                <div class="register-form-group">
+                                    <label for="nome" style="display: block; margin-bottom: 5px; font-weight: 600;">Nome *</label>
+                                    <input type="text" id="nome" name="nome" 
+                                           style="width: 100%; padding: 12px; border: 1px solid var(--grey-medium); border-radius: 6px; font-size: 16px;">
+                                </div>
+                                <div class="register-form-group">
+                                    <label for="cognome" style="display: block; margin-bottom: 5px; font-weight: 600;">Cognome *</label>
+                                    <input type="text" id="cognome" name="cognome" 
+                                           style="width: 100%; padding: 12px; border: 1px solid var(--grey-medium); border-radius: 6px; font-size: 16px;">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Campi specifici compagnia -->
+                        <div id="campiCompagnia" style="display: none;">
+                            <div class="register-form-group">
+                                <label for="nome_compagnia" style="display: block; margin-bottom: 5px; font-weight: 600;">Nome Compagnia *</label>
+                                <input type="text" id="nome_compagnia" name="nome_compagnia" placeholder="Es: Alitalia"
+                                       style="width: 100%; padding: 12px; border: 1px solid var(--grey-medium); border-radius: 6px; font-size: 16px;">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" 
+                                style="width: 100%; padding: 14px; background: #0f9d58; color: white; border: none; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px;">
+                            ✓ Registrati
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="register-footer">
+                    <p style="margin: 0;">Hai già un account? 
+                        <a href="{{ url_for('login') }}" style="color: #0f9d58; text-decoration: none; font-weight: 600;">
+                            Accedi qui
+                        </a>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Link per tornare alla home -->
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="{{ url_for('home') }}" style="color: #0f9d58; text-decoration: none; font-weight: 500;">
+                    ← Torna alla Home
+                </a>
+            </div>
+        </div>
+    </div>
+    
+<script>
+// JavaScript ultra-minimale - solo switch base
+document.addEventListener('DOMContentLoaded', function() {
+    function toggle() {
+        const isPasseggero = document.getElementById('tipoPasseggero').checked;
+        document.getElementById('campiPasseggero').style.display = isPasseggero ? 'block' : 'none';
+        document.getElementById('campiCompagnia').style.display = isPasseggero ? 'none' : 'block';
+        document.getElementById('optionPasseggero').className = 'register-radio-option' + (isPasseggero ? ' selected' : '');
+        document.getElementById('optionCompagnia').className = 'register-radio-option' + (isPasseggero ? '' : ' selected');
+    }
+    document.getElementById('tipoPasseggero').addEventListener('change', toggle);
+    document.getElementById('tipoCompagnia').addEventListener('change', toggle);
+    document.getElementById('optionPasseggero').addEventListener('click', function() {
+        document.getElementById('tipoPasseggero').checked = true; toggle();
+    });
+    document.getElementById('optionCompagnia').addEventListener('click', function() {
+        document.getElementById('tipoCompagnia').checked = true; toggle();
+    });
+    toggle();
+});
+</script>
+
+    
+</body>
+</html>

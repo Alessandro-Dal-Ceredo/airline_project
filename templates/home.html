@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Home - BD Airline{% endblock %}
+
+{% block content %}
+
+
+<!-- Search Form -->
+<div class="search-section mb-5">
+    <div class="search-card">
+        <div class="search-form">
+            <form action="{{ url_for('search_flights') }}" method="GET">
+                
+                <div class="form-fields">
+                    <div class="search-header">
+                        <h3 style="color: #1a73e8; font-size: 1.8rem; font-weight: bold; margin: 0; padding-bottom: 5px"; class="search-title">Cerca il tuo volo</h3>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Partenza</label>
+                        <select name="origine" class="form-select" required>
+                            <option value="">Seleziona aeroporto</option>
+                            {% for aeroporto in aeroporti %}
+                            <option value="{{ aeroporto.codice }}">
+                                {{ aeroporto.codice }} - {{ aeroporto.citta }}, {{ aeroporto.paese }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Destinazione</label>
+                        <select name="destinazione" class="form-select" required>
+                            <option value="">Seleziona aeroporto</option>
+                            {% for aeroporto in aeroporti %}
+                            <option value="{{ aeroporto.codice }}">
+                                {{ aeroporto.codice }} - {{ aeroporto.citta }}, {{ aeroporto.paese }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Data partenza</label>
+                        <input type="date" name="data_partenza" class="form-control" id="dataPartenza" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Opzioni di ricerca</label>
+                        <div style="display: flex; align-items: center; gap: 15px; margin-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                                <input type="radio" name="tipo_ricerca" value="con_scali" checked style="margin: 0;">
+                                <span>Con scali (consigliato)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                                <input type="radio" name="tipo_ricerca" value="solo_diretti" style="margin: 0;">
+                                <span>Solo voli diretti</span>
+                            </label>
+                        </div>
+                        <small style="color: #666; font-size: 0.85em; margin-top: 5px; display: block;">
+                            La ricerca con scali include voli diretti e con connessioni (min. 2h)
+                        </small>
+                    </div>
+                    <div class="form-group search-button-group">
+                        <button type="submit" class="btn btn-search">
+                            Cerca voli
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+{% if not current_user.is_authenticated %}
+<div class="cta-section mt-5">
+    <div class="cta-card">
+        <h4 class="cta-title">Non hai ancora un account?</h4>
+        <p class="cta-description">Registrati ora per gestire le tue prenotazioni!</p>
+        <div class="cta-buttons">
+            <a href="{{ url_for('login') }}" class="btn btn-lg">
+                Accedi
+            </a>
+            <a href="{{ url_for('register') }}" class="btn btn-secondary btn-lg">
+                Registrati
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Imposta la data di oggi come default
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    const dataPartenza = document.getElementById('dataPartenza');
+    
+    dataPartenza.value = today;
+    dataPartenza.min = today;
+});
+
+// Funzione per filtrare le destinazioni basate sull'aeroporto di partenza
+function updateDestinations() {
+    const origineSelect = document.querySelector('select[name="origine"]');
+    const destinazioneSelect = document.querySelector('select[name="destinazione"]');
+    const origineValue = origineSelect.value;
+    
+    // Reset del select destinazione
+    destinazioneSelect.innerHTML = '<option value="">Seleziona aeroporto...</option>';
+    destinazioneSelect.disabled = !origineValue;
+    
+    if (!origineValue) {
+        return;
+    }
+    
+    // Mostra loading
+    destinazioneSelect.innerHTML = '<option value="">Caricamento...</option>';
+    
+    // Chiamata AJAX per ottenere le destinazioni disponibili
+    fetch(`/api/destinations/${origineValue}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reset e popolamento
+                destinazioneSelect.innerHTML = '<option value="">Seleziona destinazione...</option>';
+                
+                if (data.destinations.length === 0) {
+                    destinazioneSelect.innerHTML = '<option value="">Nessuna destinazione disponibile</option>';
+                    destinazioneSelect.disabled = true;
+                    return;
+                }
+                
+                // Aggiungi le destinazioni disponibili
+                data.destinations.forEach(dest => {
+                    const option = document.createElement('option');
+                    option.value = dest.codice;
+                    option.textContent = dest.display;
+                    destinazioneSelect.appendChild(option);
+                });
+                
+                destinazioneSelect.disabled = false;
+                
+                // Messaggio di conferma
+                console.log(`Trovate ${data.destinations.length} destinazioni da ${origineValue}`);
+                
+            } else {
+                console.error('Errore nel caricamento destinazioni:', data.error);
+                destinazioneSelect.innerHTML = '<option value="">Errore nel caricamento</option>';
+                destinazioneSelect.disabled = true;
+            }
+        })
+        .catch(error => {
+            console.error('Errore di rete:', error);
+            destinazioneSelect.innerHTML = '<option value="">Errore di connessione</option>';
+            destinazioneSelect.disabled = true;
+        });
+}
+
+// Aggiungi listener per il cambio di aeroporto di partenza
+document.addEventListener('DOMContentLoaded', function() {
+    const origineSelect = document.querySelector('select[name="origine"]');
+    
+    // Inizialmente disabilita il select destinazione
+    document.querySelector('select[name="destinazione"]').disabled = true;
+    
+    // Aggiungi event listener per il cambio di origine
+    origineSelect.addEventListener('change', updateDestinations);
+});
+
+// Funzione per validare la selezione (non può selezionare stesso aeroporto)
+function validateAirports() {
+    const origine = document.querySelector('select[name="origine"]').value;
+    const destinazione = document.querySelector('select[name="destinazione"]').value;
+    
+    if (origine && destinazione && origine === destinazione) {
+        alert('Aeroporto di partenza e destinazione non possono essere uguali!');
+        return false;
+    }
+    return true;
+}
+
+// Aggiungi validazione al form
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (!validateAirports()) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

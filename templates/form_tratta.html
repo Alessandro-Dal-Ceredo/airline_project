@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Nuova Tratta - Dashboard Compagnia{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-route"></i>
+                    Aggiungi Nuova Tratta
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="aeroporto_partenza" class="form-label">
+                            <i class="fas fa-plane-departure text-primary"></i> Aeroporto di Partenza *
+                        </label>
+                        <select class="form-select" 
+                                id="aeroporto_partenza" 
+                                name="aeroporto_partenza" 
+                                required>
+                            <option value="">Seleziona aeroporto di partenza</option>
+                            {% for aeroporto in aeroporti %}
+                            <option value="{{ aeroporto.codice }}">
+                                {{ aeroporto.codice }} - {{ aeroporto.citta }}, {{ aeroporto.paese }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="text-center mb-3">
+                        <i class="fas fa-arrow-down fa-2x text-muted"></i>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="aeroporto_arrivo" class="form-label">
+                            <i class="fas fa-plane-arrival text-success"></i> Aeroporto di Arrivo *
+                        </label>
+                        <select class="form-select" 
+                                id="aeroporto_arrivo" 
+                                name="aeroporto_arrivo" 
+                                required>
+                            <option value="">Seleziona aeroporto di arrivo</option>
+                            {% for aeroporto in aeroporti %}
+                            <option value="{{ aeroporto.codice }}">
+                                {{ aeroporto.codice }} - {{ aeroporto.citta }}, {{ aeroporto.paese }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Nota:</strong> Una volta creata la tratta, potrai aggiungere voli per questa rotta.
+                        Assicurati che la tua compagnia abbia i permessi per operare su questa tratta.
+                    </div>
+
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('dashboard_compagnia') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Torna alla Dashboard
+                        </a>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Crea Tratta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Anteprima tratta -->
+        <div class="card mt-3" id="preview-card" style="display: none;">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-eye"></i> Anteprima Tratta</h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="row align-items-center">
+                    <div class="col-5">
+                        <div id="preview-partenza" class="h5 text-primary"></div>
+                        <small class="text-muted" id="preview-partenza-nome"></small>
+                    </div>
+                    <div class="col-2">
+                        <i class="fas fa-arrow-right fa-2x text-muted"></i>
+                    </div>
+                    <div class="col-5">
+                        <div id="preview-arrivo" class="h5 text-success"></div>
+                        <small class="text-muted" id="preview-arrivo-nome"></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Anteprima della tratta
+function aggiornaAnteprima() {
+    const selectPartenza = document.getElementById('aeroporto_partenza');
+    const selectArrivo = document.getElementById('aeroporto_arrivo');
+    const previewCard = document.getElementById('preview-card');
+    
+    const partenza = selectPartenza.value;
+    const arrivo = selectArrivo.value;
+    
+    if (partenza && arrivo) {
+        // Mostra l'anteprima
+        previewCard.style.display = 'block';
+        
+        // Aggiorna i dati della partenza
+        document.getElementById('preview-partenza').textContent = partenza;
+        const partenzaNome = selectPartenza.options[selectPartenza.selectedIndex].text.split(' - ')[1];
+        document.getElementById('preview-partenza-nome').textContent = partenzaNome;
+        
+        // Aggiorna i dati dell'arrivo
+        document.getElementById('preview-arrivo').textContent = arrivo;
+        const arrivoNome = selectArrivo.options[selectArrivo.selectedIndex].text.split(' - ')[1];
+        document.getElementById('preview-arrivo-nome').textContent = arrivoNome;
+        
+        // Controlla se sono uguali
+        if (partenza === arrivo) {
+            previewCard.querySelector('.card-header').classList.add('bg-danger', 'text-white');
+            previewCard.querySelector('.card-header').classList.remove('bg-light');
+            previewCard.querySelector('h6').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Errore: stesso aeroporto!';
+        } else {
+            previewCard.querySelector('.card-header').classList.remove('bg-danger', 'text-white');
+            previewCard.querySelector('.card-header').classList.add('bg-light');
+            previewCard.querySelector('h6').innerHTML = '<i class="fas fa-eye"></i> Anteprima Tratta';
+        }
+    } else {
+        previewCard.style.display = 'none';
+    }
+}
+
+// Event listeners
+document.getElementById('aeroporto_partenza').addEventListener('change', aggiornaAnteprima);
+document.getElementById('aeroporto_arrivo').addEventListener('change', aggiornaAnteprima);
+
+// Impedisci di selezionare lo stesso aeroporto
+document.getElementById('aeroporto_partenza').addEventListener('change', function() {
+    const selectArrivo = document.getElementById('aeroporto_arrivo');
+    const valoreScelto = this.value;
+    
+    // Abilita tutte le opzioni
+    for (let option of selectArrivo.options) {
+        option.disabled = false;
+    }
+    
+    // Disabilita l'opzione corrispondente nell'altro select
+    if (valoreScelto) {
+        for (let option of selectArrivo.options) {
+            if (option.value === valoreScelto) {
+                option.disabled = true;
+                break;
+            }
+        }
+        
+        // Se l'arrivo era già uguale alla partenza, resettalo
+        if (selectArrivo.value === valoreScelto) {
+            selectArrivo.value = '';
+        }
+    }
+    
+    aggiornaAnteprima();
+});
+
+document.getElementById('aeroporto_arrivo').addEventListener('change', function() {
+    const selectPartenza = document.getElementById('aeroporto_partenza');
+    const valoreScelto = this.value;
+    
+    // Abilita tutte le opzioni
+    for (let option of selectPartenza.options) {
+        option.disabled = false;
+    }
+    
+    // Disabilita l'opzione corrispondente nell'altro select
+    if (valoreScelto) {
+        for (let option of selectPartenza.options) {
+            if (option.value === valoreScelto) {
+                option.disabled = true;
+                break;
+            }
+        }
+        
+        // Se la partenza era già uguale all'arrivo, resettala
+        if (selectPartenza.value === valoreScelto) {
+            selectPartenza.value = '';
+        }
+    }
+    
+    aggiornaAnteprima();
+});
+</script>
+{% endblock %}

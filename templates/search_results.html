@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Risultati Ricerca Voli - BD Airline{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 style="color: var(--primary); margin-bottom: 2rem; font-size: 2.3rem; text-align: center;">Risultati Ricerca Voli</h1>
+    {% if origine and destinazione %}
+    <p style="font-weight: 600; font-size: 1.6rem; margin-bottom: 2rem; text-align: center;">
+        {{ origine.upper() }} → {{ destinazione.upper() }}
+        {% if data_partenza %}
+        <span style="color: #666; font-weight: normal;"> | {{ data_partenza }}</span>
+        {% endif %}
+    </p>
+    {% endif %}
+    <div style="margin-bottom: 2rem; text-align: center;">
+        <a href="#" id="modifySearch" style="display: inline-block; padding: 10px 20px; background: var(--primary); color: white; border-radius: 6px; text-decoration: none; font-weight: 500; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease;">
+             Modifica Ricerca
+        </a>
+    </div>
+    {% set total_results = (voli_andata|length if voli_andata else 0) + (viaggi_combinati|length if viaggi_combinati else 0) %}
+    {% if total_results > 0 %}
+        <div style="font-size: 1.3rem; font-weight: 700; color: #4CAF50; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+            Trovati <span>{{ total_results }} soluzioni di viaggio</span>
+            {% if tipo_ricerca == 'solo_diretti' %}
+                <small style="font-weight: normal; color: #666;">(solo voli diretti)</small>
+            {% else %}
+                <small style="font-weight: normal; color: #666;">
+                    ({{ voli_andata|length if voli_andata else 0 }} diretti + {{ viaggi_combinati|length if viaggi_combinati else 0 }} con scali)
+                </small>
+            {% endif %}
+        </div>
+        
+        <!-- VOLI DIRETTI -->
+        {% if voli_andata and voli_andata|length > 0 %}
+        <h3 style="color: var(--primary); margin: 2rem 0 1rem 0; font-size: 1.4rem;">✈️ Voli Diretti</h3>
+        <div>
+            {% for volo in voli_andata %}
+            <div style="border: 1px solid var(--grey-medium); background: var(--text-light); padding: 1rem; margin-bottom: 1rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: left;">
+                    <div style="font-weight: 700; font-size: 1.2rem; color: var(--primary); margin-bottom: 0.2rem; text-align: left;">
+                        {{ volo.partenza.strftime('%H:%M') }} &rarr; {{ volo.arrivo.strftime('%H:%M') }}
+                    </div>
+                    <div style="font-size: 0.9rem; color: #555; margin-bottom: 0.2rem; text-align: left;">
+                      {{ volo.tratta.aeroporto_partenza }} &rarr; {{ volo.tratta.aeroporto_arrivo }} &nbsp;|&nbsp; {{ volo.partenza.strftime('%d/%m/%Y') }}
+                    </div>
+                    <div style="font-weight: 600; margin-bottom: 0.2rem; color: #444; text-align: left;">
+                        {{ volo.tratta.compagnia.nome_compagnia if volo.tratta.compagnia else "N/A" }} - {{ volo.aereo.modello if volo.aereo else "N/A" }}
+                    </div>
+                    <div style="font-size: 0.85rem; color: {{ 'green' if volo.posti_disponibili > 10 else 'orange' if volo.posti_disponibili > 5 else 'red' }}; text-align: left;">
+                        {{ volo.posti_disponibili }} posti disponibili
+                    </div>
+                </div>
+                <div style="text-align: center; min-width: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                    {% if volo.prezzi %}
+                        <div style="font-weight: 700; font-size: 1.15rem; margin-bottom: 0.5rem; color: var(--primary-dark);">
+                            Prezzi:
+                        </div>
+                        <ul style="list-style: none; padding: 0; margin: 0 0 0.8rem 0; font-size: 0.9rem; text-align: center;">
+                        {% for prezzo in volo.prezzi %}
+                          <li style="margin-bottom: 0.2rem;">
+                            <strong>{{ prezzo.classe|capitalize }}:</strong> €{{ "%.0f"|format(prezzo.prezzo) }}
+                          </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div style="font-weight: 700; font-size: 1.15rem; color: var(--primary-dark); margin-bottom: 0.8rem;">Prezzo: € N/D</div>
+                    {% endif %}
+                    {% if current_user.is_authenticated and current_user.tipo == 'passeggero' %}
+                    <a href="{{ url_for('book_flight', volo_id=volo.id) }}" style="display: inline-block; padding: 8px 14px; background: var(--primary); color: white; border-radius: 4px; text-decoration: none; font-weight: 500;">Prenota</a>
+                    {% else %}
+                    <small style="color: #999; text-align: center;">Effettua il login per prenotare</small>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- VIAGGI CON SCALI -->
+        {% if viaggi_combinati and viaggi_combinati|length > 0 %}
+        <h3 style="color: var(--primary); margin: 2rem 0 1rem 0; font-size: 1.4rem;">🔄 Viaggi con Scali</h3>
+        <div>
+            {% for viaggio in viaggi_combinati %}
+            <div style="border: 1px solid #e0b366; background: #fffdf5; padding: 1rem; margin-bottom: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <!-- Header del viaggio combinato -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e0b366;">
+                    <div>
+                        <div style="font-weight: 700; font-size: 1.3rem; color: var(--primary);">
+                            {{ viaggio.partenza_totale.strftime('%H:%M') }} → {{ viaggio.arrivo_totale.strftime('%H:%M') }}
+                            <small style="font-size: 0.8rem; font-weight: normal; color: #666; margin-left: 8px;">
+                                ({{ viaggio.numero_scali }} scalo{{ 's' if viaggio.numero_scali > 1 else '' }})
+                            </small>
+                        </div>
+                        <div style="font-size: 0.9rem; color: #666; margin-top: 4px;">
+                            Durata totale: 
+                            {% set ore = (viaggio.durata_totale.total_seconds() // 3600) | int %}
+                            {% set minuti = ((viaggio.durata_totale.total_seconds() % 3600) // 60) | int %}
+                            {{ ore }}h {{ minuti }}m
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.9rem; color: #666; margin-bottom: 4px;">
+                            Compagnie: {{ viaggio.get_compagnie() | join(', ') }}
+                        </div>
+                        <div style="font-size: 0.85rem; color: #888;">
+                            {{ viaggio.partenza_totale.strftime('%d/%m/%Y') }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Segmenti di volo -->
+                {% for i in range(viaggio.voli_segmenti|length) %}
+                    {% set volo_segmento = viaggio.voli_segmenti[i] %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; margin-bottom: 0.5rem; background: white; border: 1px solid #f0f0f0; border-radius: 6px;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-weight: 600; color: var(--primary); font-size: 1.1rem;">
+                                    {{ volo_segmento.partenza.strftime('%H:%M') }} → {{ volo_segmento.arrivo.strftime('%H:%M') }}
+                                </div>
+                                <div style="font-size: 0.9rem; color: #555;">
+                                    {{ volo_segmento.tratta.aeroporto_partenza }} → {{ volo_segmento.tratta.aeroporto_arrivo }}
+                                </div>
+                                {% if i == 0 %}
+                                    <span style="background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">Partenza</span>
+                                {% elif i == viaggio.voli_segmenti|length - 1 %}
+                                    <span style="background: #e8f5e8; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">Arrivo</span>
+                                {% endif %}
+                            </div>
+                            <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
+                                {{ volo_segmento.tratta.compagnia.nome_compagnia }} - {{ volo_segmento.aereo.modello }} 
+                                | {{ volo_segmento.posti_disponibili }} posti disponibili
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; min-width: 120px;">
+                            {% if volo_segmento.prezzi %}
+                                <div style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                    {% for prezzo in volo_segmento.prezzi %}
+                                        <div><strong>{{ prezzo.classe|capitalize }}:</strong> €{{ "%.0f"|format(prezzo.prezzo) }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if current_user.is_authenticated and current_user.tipo == 'passeggero' %}
+                                <a href="{{ url_for('book_flight', volo_id=volo_segmento.id) }}" 
+                                   style="display: inline-block; padding: 6px 12px; background: var(--primary); color: white; border-radius: 4px; text-decoration: none; font-size: 0.85rem; font-weight: 500;">
+                                   Prenota Segmento {{ i + 1 }}
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Tempo di connessione -->
+                    {% if i < viaggio.voli_segmenti|length - 1 %}
+                        {% set tempo_connessione = viaggio.get_tempi_connessione()[i] %}
+                        {% set ore_conn = (tempo_connessione.total_seconds() // 3600) | int %}
+                        {% set min_conn = ((tempo_connessione.total_seconds() % 3600) // 60) | int %}
+                        <div style="text-align: center; margin: 0.5rem 0; padding: 0.5rem; background: #f8f9fa; border-left: 4px solid #ffc107; font-size: 0.9rem; color: #856404;">
+                            ⏱️ <strong>Scalo a {{ viaggio.aeroporti_scalo[i] }}</strong> - Tempo di connessione: {{ ore_conn }}h {{ min_conn }}m
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Prezzo totale e azioni -->
+                {% if current_user.is_authenticated and current_user.tipo == 'passeggero' %}
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0b366; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 1.1rem; font-weight: 600; color: var(--primary-dark);">
+                            💰 Prezzi totali stimati:
+                            {% for classe in ['economy', 'business', 'first'] %}
+                                {% set prezzo_totale = viaggio.get_prezzo_minimo_per_classe(classe) %}
+                                {% if prezzo_totale %}
+                                    <div style="font-size: 0.9rem; margin: 2px 0;">
+                                        <strong>{{ classe|capitalize }}:</strong> €{{ "%.0f"|format(prezzo_totale) }}
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div style="text-align: right;">
+                            <small style="color: #666; font-size: 0.8rem; display: block; margin-bottom: 8px;">
+                                ⚠️ Prenota ogni segmento separatamente
+                            </small>
+                            <div style="font-size: 0.85rem; color: #888;">
+                                Posti minimi disponibili: 
+                                {% for classe in ['economy', 'business', 'first'] %}
+                                    {% set posti = viaggio.get_posti_disponibili_per_classe(classe) %}
+                                    {% if posti > 0 %}
+                                        {{ classe|capitalize }}: {{ posti }}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+    {% else %}
+        <p style="font-size: 1.1rem; color: #777; margin-top: 3rem; text-align: center;">Nessun volo trovato per i criteri inseriti. Prova a modificare la ricerca.</p>
+    {% endif %}
+</div>
+
+<script>
+document.getElementById('modifySearch').addEventListener('click', function(e) {
+    e.preventDefault();
+    window.history.back();
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - BD Airline</title>
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body class="login-page">
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1001; width: 90%; max-width: 400px;">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Login Page Container -->
+    <div class="login-page">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <h4>
+                        Login BD Airline
+                    </h4>
+                </div>
+                
+                <div class="login-body">
+                    <form method="POST">
+                        <div style="margin-bottom: 20px;">
+                            <label for="username" style="display: block; margin-bottom: 5px; font-weight: 600;">Username</label>
+                            <input type="text" id="username" name="username" required 
+                                   style="width: 100%; padding: 12px; border: 1px solid var(--grey-medium); border-radius: 6px; font-size: 16px;">
+                        </div>
+                        
+                        <div style="margin-bottom: 25px;">
+                            <label for="password" style="display: block; margin-bottom: 5px; font-weight: 600;">Password</label>
+                            <input type="password" id="password" name="password" required 
+                                   style="width: 100%; padding: 12px; border: 1px solid var(--grey-medium); border-radius: 6px; font-size: 16px;">
+                        </div>
+                        
+                        <button type="submit" 
+                                style="width: 100%; padding: 14px; background: var(--primary); color: white; border: none; font-size: 16px; font-weight: 600; cursor: pointer;">
+                            → Accedi
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="login-footer">
+                    <p style="margin: 0;">Non hai un account? 
+                        <a href="{{ url_for('register') }}" style="color: var(--primary); text-decoration: none; font-weight: 600;">
+                            Registrati qui
+                        </a>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Link per tornare alla home -->
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="{{ url_for('home') }}" style="color: var(--primary); text-decoration: none; font-weight: 500;">
+                    ← Torna alla Home
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript completamente rimosso per massima semplicità -->
+    
+</body>
+</html>

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Richiedi Modifica Prenotazione #{{ prenotazione.id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit text-warning"></i>
+                        Richiedi Modifica Prenotazione #{{ prenotazione.id }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Come Funziona</h6>
+                        <p class="mb-0">
+                            Le modifiche alle prenotazioni richiedono approvazione manuale del nostro staff.
+                            Compila il modulo qui sotto per inviare la tua richiesta di modifica.
+                        </p>
+                    </div>
+
+                    <!-- Dettagli prenotazione attuale -->
+                    <div class="card mb-4 bg-light">
+                        <div class="card-header">
+                            <h6 class="mb-0">Prenotazione Attuale</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Data Prenotazione:</strong><br>
+                                    {{ prenotazione.data_acquisto.strftime('%d/%m/%Y alle %H:%M') }}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Costo Totale:</strong><br>
+                                    €{{ "%.2f"|format(prenotazione.costo_totale) }}
+                                </div>
+                            </div>
+                            <hr>
+                            <strong>Voli inclusi:</strong>
+                            {% for biglietto in prenotazione.biglietti %}
+                            {% set volo = biglietto.volo %}
+                            <div class="mt-2 p-2 border rounded">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <strong>{{ volo.tratta.aeroporto_partenza }} → {{ volo.tratta.aeroporto_arrivo }}</strong><br>
+                                        <small class="text-muted">
+                                            {{ volo.partenza.strftime('%d/%m/%Y alle %H:%M') }} - 
+                                            {{ volo.arrivo.strftime('%d/%m/%Y alle %H:%M') }}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <span class="badge bg-primary">{{ biglietto.classe.title() }}</span><br>
+                                        <small>Posto: {{ biglietto.posto }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Form richiesta modifica -->
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="tipo_modifica" class="form-label">Tipo di Modifica Richiesta *</label>
+                            <select class="form-select" id="tipo_modifica" name="tipo_modifica" required>
+                                <option value="">Seleziona il tipo di modifica...</option>
+                                <option value="data_orario">Cambio data/orario volo</option>
+                                <option value="destinazione">Cambio destinazione</option>
+                                <option value="classe">Upgrade/Downgrade classe</option>
+                                <option value="passeggero">Modifica dati passeggero</option>
+                                <option value="posto">Cambio posto</option>
+                                <option value="altro">Altro</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="dettagli_modifica" class="form-label">Dettagli della Modifica *</label>
+                            <textarea class="form-control" 
+                                      id="dettagli_modifica" 
+                                      name="dettagli_modifica" 
+                                      rows="4" 
+                                      required
+                                      placeholder="Descrivi nel dettaglio cosa vorresti modificare..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="note_speciali" class="form-label">Note Aggiuntive</label>
+                            <textarea class="form-control" 
+                                      id="note_speciali" 
+                                      name="note_speciali" 
+                                      rows="3" 
+                                      placeholder="Eventuali richieste speciali o informazioni aggiuntive..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="contatto_preferito" class="form-label">Come Preferisci essere Contattato</label>
+                            <select class="form-select" id="contatto_preferito" name="contatto_preferito">
+                                <option value="email">Email ({{ current_user.email }})</option>
+                                <option value="telefono">Telefono (inserisci numero nelle note)</option>
+                                <option value="entrambi">Sia email che telefono</option>
+                            </select>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-exclamation-triangle"></i> Importante</h6>
+                            <ul class="mb-0">
+                                <li>Le modifiche potrebbero comportare costi aggiuntivi</li>
+                                <li>Non tutte le modifiche sono possibili (dipende dalla disponibilità)</li>
+                                <li>Riceverai una risposta entro 24-48 ore</li>
+                                <li>La modifica è soggetta ai termini e condizioni della compagnia aerea</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('dettagli_prenotazione', prenotazione_id=prenotazione.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Annulla
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-paper-plane"></i> Invia Richiesta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Contatti alternativi -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-phone"></i>
+                        Contatti Alternativi
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">Se preferisci, puoi anche contattarci direttamente:</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Telefono:</strong> +39 02 1234 5678<br>
+                            <small class="text-muted">Lun-Ven 9:00-18:00</small>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Email:</strong> modifiche@airline.com<br>
+                            <small class="text-muted">Risposta entro 24h</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

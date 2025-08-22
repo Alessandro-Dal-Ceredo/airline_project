@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block title %}Gestione Voli - {{ compagnia.nome_compagnia }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-plane-departure"></i>
+                    Gestione Voli - {{ compagnia.nome_compagnia }}
+                </h2>
+                <div>
+                    <a href="{{ url_for('nuovo_volo') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Nuovo Volo
+                    </a>
+                    <a href="{{ url_for('dashboard_compagnia') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <!-- Statistiche rapide -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5>Totale Voli</h5>
+                                    <h3>{{ totale_voli }}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-plane fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5>Voli Futuri</h5>
+                                    <h3>{{ voli_futuri }}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-calendar-plus fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5>Voli Pieni</h5>
+                                    <h3>{{ voli_pieni }}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-users fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form filtri -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-filter"></i> Filtri di Ricerca</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('gestione_voli') }}">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="tratta" class="form-label">Tratta:</label>
+                                <select name="tratta" id="tratta" class="form-select">
+                                    <option value="">Tutte le tratte</option>
+                                    {% for tratta in compagnia.tratte %}
+                                    <option value="{{ tratta.id }}" 
+                                            {% if filtro_tratta == tratta.id|string %}selected{% endif %}>
+                                        {{ tratta.aeroporto_partenza }} → {{ tratta.aeroporto_arrivo }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="aereo" class="form-label">Aereo:</label>
+                                <select name="aereo" id="aereo" class="form-select">
+                                    <option value="">Tutti gli aerei</option>
+                                    {% for aereo in compagnia.aerei %}
+                                    <option value="{{ aereo.id }}" 
+                                            {% if filtro_aereo == aereo.id|string %}selected{% endif %}>
+                                        {{ aereo.modello }} ({{ aereo.posti_totali }} posti)
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="data_da" class="form-label">Data da:</label>
+                                <input type="date" name="data_da" id="data_da" class="form-control" 
+                                       value="{{ data_da }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="data_a" class="form-label">Data a:</label>
+                                <input type="date" name="data_a" id="data_a" class="form-control" 
+                                       value="{{ data_a }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="stato" class="form-label">Stato:</label>
+                                <select name="stato" id="stato" class="form-select">
+                                    <option value="">Tutti</option>
+                                    <option value="futuri" {% if stato_volo == 'futuri' %}selected{% endif %}>
+                                        Futuri
+                                    </option>
+                                    <option value="passati" {% if stato_volo == 'passati' %}selected{% endif %}>
+                                        Passati
+                                    </option>
+                                    <option value="disponibili" {% if stato_volo == 'disponibili' %}selected{% endif %}>
+                                        Disponibili
+                                    </option>
+                                    <option value="pieni" {% if stato_volo == 'pieni' %}selected{% endif %}>
+                                        Pieni
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-3">
+                                <label for="ordina" class="form-label">Ordinamento:</label>
+                                <select name="ordina" id="ordina" class="form-select">
+                                    <option value="partenza_desc" {% if ordinamento == 'partenza_desc' %}selected{% endif %}>
+                                        Partenza (più recenti)
+                                    </option>
+                                    <option value="partenza_asc" {% if ordinamento == 'partenza_asc' %}selected{% endif %}>
+                                        Partenza (più vecchi)
+                                    </option>
+                                    <option value="tratta" {% if ordinamento == 'tratta' %}selected{% endif %}>
+                                        Tratta
+                                    </option>
+                                    <option value="posti" {% if ordinamento == 'posti' %}selected{% endif %}>
+                                        Posti disponibili
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-9 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="fas fa-search"></i> Filtra
+                                </button>
+                                <a href="{{ url_for('gestione_voli') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i> Reset
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tabella voli -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-list"></i> Lista Voli ({{ totale_voli }} risultati)</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if voli %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tratta</th>
+                                    <th>Aereo</th>
+                                    <th>Partenza</th>
+                                    <th>Arrivo</th>
+                                    <th>Posti Disp.</th>
+                                    <th>Prezzi</th>
+                                    <th>Stato</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for volo in voli %}
+                                <tr>
+                                    <td>
+                                        <strong>#{{ volo.id }}</strong>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge bg-secondary me-1">{{ volo.tratta.aeroporto_partenza }}</span>
+                                            <i class="fas fa-arrow-right mx-1 text-muted"></i>
+                                            <span class="badge bg-secondary">{{ volo.tratta.aeroporto_arrivo }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ volo.aereo.modello }}</small><br>
+                                        <small>({{ volo.aereo.posti_totali }} posti)</small>
+                                    </td>
+                                    <td>
+                                        <strong>{{ volo.partenza.strftime('%d/%m/%Y') }}</strong><br>
+                                        <small class="text-muted">{{ volo.partenza.strftime('%H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        <strong>{{ volo.arrivo.strftime('%d/%m/%Y') }}</strong><br>
+                                        <small class="text-muted">{{ volo.arrivo.strftime('%H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        {% if volo.posti_disponibili == 0 %}
+                                            <span class="badge bg-danger">PIENO</span>
+                                        {% elif volo.posti_disponibili < 10 %}
+                                            <span class="badge bg-warning text-dark">{{ volo.posti_disponibili }}</span>
+                                        {% else %}
+                                            <span class="badge bg-success">{{ volo.posti_disponibili }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {% for prezzo in volo.prezzi %}
+                                                {{ prezzo.classe.title() }}: €{{ "%.0f"|format(prezzo.prezzo) }}<br>
+                                            {% endfor %}
+                                            {% if not volo.prezzi %}
+                                                <em class="text-muted">Nessun prezzo</em>
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if volo.arrivo < ora_corrente %}
+                                            <span class="badge bg-secondary">Completato</span>
+                                        {% elif volo.partenza > ora_corrente %}
+                                            {% if volo.posti_disponibili > 0 %}
+                                                <span class="badge bg-success">Disponibile</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark">Pieno</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-info">In volo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <!-- Pulsante elimina solo per voli futuri senza prenotazioni -->
+                                            {% if volo.partenza > ora_corrente %}
+                                            <form method="POST" action="{{ url_for('elimina_volo', volo_id=volo.id) }}" 
+                                                  class="d-inline" 
+                                                  onsubmit="return confirm('Sei sicuro di voler eliminare questo volo?')">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                                        title="Elimina volo">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                            {% else %}
+                                            <button class="btn btn-outline-secondary btn-sm" disabled 
+                                                    title="Volo già partito">
+                                                <i class="fas fa-lock"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-plane-slash fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nessun volo trovato</h5>
+                        <p class="text-muted">
+                            {% if request.args %}
+                                Prova a modificare i filtri di ricerca.
+                            {% else %}
+                                Non hai ancora creato nessun volo.
+                            {% endif %}
+                        </p>
+                        {% if not request.args %}
+                        <a href="{{ url_for('nuovo_volo') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Crea il tuo primo volo
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript per migliorare l'UX -->
+<script>
+// Auto-submit form quando si cambia il filtro rapido
+document.addEventListener('DOMContentLoaded', function() {
+    // Funzione per auto-submit quando si cambiano i select
+    const autoSubmitSelects = ['tratta', 'aereo', 'stato', 'ordina'];
+    autoSubmitSelects.forEach(function(selectId) {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+    });
+});
+
+// Conferma eliminazione con più dettagli
+function confirmDelete(voloId, tratta, data) {
+    return confirm(`Sei sicuro di voler eliminare il volo #${voloId} (${tratta}) del ${data}?\n\nQuesta azione non può essere annullata.`);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}Dettagli Prenotazione #{{ prenotazione.id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>
+                        <i class="fas fa-ticket-alt text-primary"></i>
+                        Dettagli Prenotazione #{{ prenotazione.id }}
+                    </h2>
+                    <p class="text-muted mb-0">Prenotazione effettuata da {{ prenotazione.passeggero.nome_completo }}</p>
+                </div>
+                <div>
+                    <span class="badge fs-6 {% if prenotazione.stato == 'confermata' %}bg-success{% else %}bg-danger{% endif %}">
+                        <i class="fas {% if prenotazione.stato == 'confermata' %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
+                        {{ prenotazione.stato.title() }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Informazioni Prenotazione -->
+                <div class="col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle"></i>
+                                Informazioni Generali
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <small class="text-muted">Data Prenotazione:</small><br>
+                                <strong>{{ prenotazione.data_acquisto.strftime('%d/%m/%Y alle %H:%M') }}</strong>
+                            </div>
+                            <div class="mb-3">
+                                <small class="text-muted">Costo Totale:</small><br>
+                                <h4 class="text-success mb-0">€ {{ "%.2f"|format(prenotazione.costo_totale) }}</h4>
+                            </div>
+                            <div class="mb-3">
+                                <small class="text-muted">Stato:</small><br>
+                                <span class="badge {% if prenotazione.stato == 'confermata' %}bg-success{% else %}bg-danger{% endif %} fs-6">
+                                    {{ prenotazione.stato.title() }}
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <small class="text-muted">Numero Biglietti:</small><br>
+                                <strong>{{ prenotazione.biglietti|length }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dettagli Biglietti -->
+                <div class="col-lg-8">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-plane"></i>
+                                Dettagli Volo/i
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% for biglietto in prenotazione.biglietti %}
+                            {% set volo = biglietto.volo %}
+                            {% set tratta = volo.tratta %}
+                            
+                            <div class="card mb-3 {% if loop.last %}mb-0{% endif %}">
+                                <div class="card-header bg-light">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-plane-departure text-primary"></i>
+                                                Volo #{{ volo.id }} - {{ tratta.compagnia.nome_compagnia }}
+                                            </h6>
+                                        </div>
+                                        <div class="col-auto">
+                                            <span class="badge bg-primary">{{ biglietto.classe.title() }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Tratta -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-5 text-center">
+                                            <div class="departure-info">
+                                                <h4 class="text-primary mb-0">{{ tratta.aeroporto_partenza }}</h4>
+                                                <small class="text-muted">Partenza</small>
+                                                <div class="mt-2">
+                                                    <strong class="fs-5">{{ volo.partenza.strftime('%H:%M') }}</strong><br>
+                                                    <span class="text-muted">{{ volo.partenza.strftime('%d/%m/%Y') }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 text-center align-self-center">
+                                            <i class="fas fa-arrow-right fa-2x text-muted"></i>
+                                            {% set duration = volo.arrivo - volo.partenza %}
+                                            {% set hours = (duration.total_seconds() // 3600)|int %}
+                                            {% set minutes = ((duration.total_seconds() % 3600) // 60)|int %}
+                                            <br><small class="text-muted">{{ hours }}h {{ minutes }}m</small>
+                                        </div>
+                                        <div class="col-md-5 text-center">
+                                            <div class="arrival-info">
+                                                <h4 class="text-success mb-0">{{ tratta.aeroporto_arrivo }}</h4>
+                                                <small class="text-muted">Arrivo</small>
+                                                <div class="mt-2">
+                                                    <strong class="fs-5">{{ volo.arrivo.strftime('%H:%M') }}</strong><br>
+                                                    <span class="text-muted">{{ volo.arrivo.strftime('%d/%m/%Y') }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Dettagli Biglietto -->
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Posto Assegnato:</small><br>
+                                            <strong class="text-primary fs-5">{{ biglietto.posto }}</strong>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Classe:</small><br>
+                                            <span class="badge bg-primary fs-6">{{ biglietto.classe.title() }}</span>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Aeromobile:</small><br>
+                                            <strong>{{ volo.aereo.modello }}</strong>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Posti Liberi:</small><br>
+                                            <span class="{% if volo.posti_disponibili > 10 %}text-success{% elif volo.posti_disponibili > 0 %}text-warning{% else %}text-danger{% endif %}">
+                                                {{ volo.posti_disponibili }}/{{ volo.aereo.posti_totali }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Prezzo del biglietto -->
+                                    <hr>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <small class="text-muted">Prezzo questo biglietto:</small>
+                                        </div>
+                                        <div>
+                                            {% for prezzo in volo.prezzi %}
+                                                {% if prezzo.classe == biglietto.classe %}
+                                                    <span class="h5 text-success mb-0">€ {{ "%.2f"|format(prezzo.prezzo) }}</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Azioni -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cog"></i>
+                                Azioni Disponibili
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap gap-2">
+                                <!-- Torna al Dashboard -->
+                                <a href="{{ url_for('dashboard_passeggero') }}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> Torna al Dashboard
+                                </a>
+
+                                {% if prenotazione.stato == 'confermata' %}
+                                    {% set can_modify = true %}
+                                    {% set can_cancel = true %}
+                                    
+                                    <!-- I controlli di data sono gestiti lato server nelle routes -->
+
+                                    {% if can_modify %}
+                                    <a href="{{ url_for('modifica_prenotazione', prenotazione_id=prenotazione.id) }}" class="btn btn-warning">
+                                        <i class="fas fa-edit"></i> Richiedi Modifiche
+                                    </a>
+                                    {% endif %}
+
+                                    {% if can_cancel %}
+                                    <form method="POST" action="{{ url_for('cancel_booking', prenotazione_id=prenotazione.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-danger" 
+                                                onclick="return confirm('Sei sicuro di voler cancellare questa prenotazione? L\'operazione non può essere annullata.')">
+                                            <i class="fas fa-times"></i> Cancella Prenotazione
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <button class="btn btn-outline-secondary" disabled>
+                                        <i class="fas fa-lock"></i> Non Cancellabile
+                                    </button>
+                                    {% endif %}
+                                {% endif %}
+
+                                <!-- Stampa -->
+                                <button onclick="window.print()" class="btn btn-outline-primary">
+                                    <i class="fas fa-print"></i> Stampa Dettagli
+                                </button>
+                            </div>
+
+                            {% if prenotazione.stato == 'cancellata' %}
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Prenotazione cancellata:</strong> Questa prenotazione è stata cancellata e i posti sono stati resi disponibili.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSS personalizzato per il print -->
+<style>
+@media print {
+    .btn, .card-header, .alert { display: none !important; }
+    .container { max-width: 100% !important; }
+}
+
+.departure-info, .arrival-info {
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.departure-info {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.arrival-info {
+    background-color: rgba(25, 135, 84, 0.1);
+}
+</style>
+{% endblock %}
