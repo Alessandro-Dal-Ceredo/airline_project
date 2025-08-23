@@ -375,10 +375,13 @@ def book_multi_flight():
         flash('Solo i passeggeri possono prenotare voli.', 'error')
         return redirect(url_for('home'))
     
-    volo_ids = request.args.getlist('voli')
-    if not volo_ids:
+    # Ottieni gli ID dei voli dal parametro volo_ids (formato: "id1,id2")
+    volo_ids_str = request.args.get('volo_ids', '')
+    if not volo_ids_str:
         flash('Nessun volo specificato per la prenotazione multi-segmento.', 'error')
         return redirect(url_for('home'))
+    
+    volo_ids = volo_ids_str.split(',')
     
     try:
         # Verifica che tutti i voli esistano e siano validi per una connessione
@@ -680,6 +683,137 @@ def process_booking(volo_id, volo, prezzi_dict, extra_disponibili):
                              prezzi=prezzi_dict,
                              extra_disponibili=extra_disponibili, 
                              posti_aereo=generate_seat_map(volo))
+
+
+def process_multi_booking(viaggio):
+    """Processa la prenotazione di un viaggio con scali (più voli insieme)"""
+    try:
+        from models import Prenotazione, Biglietto, BigliettoExtra, Extra, PrezzoVolo
+        from datetime import datetime
+        
+        # Ottieni i dati dal form per ogni segmento
+        classi = {}
+        posti = {}
+        extra_per_segmento = {}
+        costo_totale = 0
+        
+        # Per ogni segmento del viaggio
+        for i, volo in enumerate(viaggio.voli_segmenti):
+            segmento_id = str(volo.id)
+            
+            # Classe per questo segmento
+            classe = request.form.get(f'classe_{segmento_id}', 'economy')
+            classi[segmento_id] = classe
+            
+            # Posto per questo segmento (opzionale)
+            posto = request.form.get(f'posto_{segmento_id}', '')
+            posti[segmento_id] = posto
+            
+            # Extra per questo segmento
+            extra_ids = request.form.getlist(f'extra_{segmento_id}')
+            extra_per_segmento[segmento_id] = extra_ids
+            
+            # Calcola il costo per questo segmento
+            prezzi = PrezzoVolo.query.filter_by(volo_id=volo.id).all()
+            prezzi_dict = {p.classe: p.prezzo for p in prezzi}
+            
+            if classe not in prezzi_dict:
+                flash(f'Classe {classe} non disponibile per il segmento {i+1}.', 'error')
+                return render_template('book_multi_flight.html', viaggio=viaggio)
+            
+            costo_segmento = prezzi_dict[classe]
+            
+            # Aggiungi costo extra
+            for extra_id in extra_ids:
+                extra = Extra.query.get(int(extra_id))
+                if extra:
+                    costo_segmento += extra.prezzo
+            
+            costo_totale += costo_segmento
+            
+            # Verifica disponibilità posti
+            if volo.posti_disponibili <= 0:
+                flash(f'Il segmento {i+1} non ha più posti disponibili.', 'error')
+                return render_template('book_multi_flight.html', viaggio=viaggio)
+        
+        # Inizia la transazione - tutto o niente
+        # Crea UNA SOLA prenotazione per tutti i segmenti
+        nuova_prenotazione = Prenotazione(
+            passeggero_id=current_user.id,
+            data_acquisto=datetime.now(),
+            costo_totale=costo_totale,
+            stato='confermata'
+        )
+        db.session.add(nuova_prenotazione)
+        db.session.flush()
+        
+        # Crea i biglietti per ogni segmento
+        biglietti_creati = []
+        for i, volo in enumerate(viaggio.voli_segmenti):
+            segmento_id = str(volo.id)
+            classe = classi[segmento_id]
+            posto_scelto = posti[segmento_id]
+            
+            # Se non è stato scelto un posto, assegna automaticamente
+            if not posto_scelto:
+                seat_map = generate_seat_map(volo)
+                disponibili = []
+                for fila in seat_map.values():
+                    for p in fila:
+                        if p['classe'] == classe and p['disponibile']:
+                            disponibili.append(p['numero'])
+                
+                if not disponibili:
+                    raise Exception(f'Nessun posto disponibile nella classe {classe} per il segmento {i+1}')
+                
+                posto_scelto = random.choice(disponibili)
+            
+            # Crea il biglietto
+            nuovo_biglietto = Biglietto(
+                prenotazione_id=nuova_prenotazione.id,
+                volo_id=volo.id,
+                classe=classe,
+                posto=posto_scelto
+            )
+            db.session.add(nuovo_biglietto)
+            db.session.flush()
+            biglietti_creati.append(nuovo_biglietto)
+            
+            # Aggiungi extra per questo biglietto
+            for extra_id in extra_per_segmento[segmento_id]:
+                extra = Extra.query.get(int(extra_id))
+                if extra:
+                    biglietto_extra = BigliettoExtra(
+                        biglietto_id=nuovo_biglietto.id,
+                        extra_id=extra.id
+                    )
+                    db.session.add(biglietto_extra)
+            
+            # Riduci posti disponibili
+            volo.posti_disponibili = max(0, volo.posti_disponibili - 1)
+        
+        # Commit della transazione
+        db.session.commit()
+        
+        # Messaggio di conferma
+        dettagli_voli = []
+        for i, volo in enumerate(viaggio.voli_segmenti):
+            segmento_id = str(volo.id)
+            dettagli = f"Segmento {i+1}: {volo.tratta.aeroporto_partenza}→{volo.tratta.aeroporto_arrivo} - Classe: {classi[segmento_id].title()}, Posto: {biglietti_creati[i].posto}"
+            dettagli_voli.append(dettagli)
+        
+        flash(f'Prenotazione viaggio completo confermata! {" | ".join(dettagli_voli)}. Totale: €{costo_totale:.0f}', 'success')
+        return redirect(url_for('dashboard_passeggero'))
+        
+    except IntegrityError as ie:
+        db.session.rollback()
+        flash('Uno dei posti selezionati è stato appena prenotato da qualcun altro. Riprova.', 'warning')
+        return render_template('book_multi_flight.html', viaggio=viaggio)
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Errore durante la prenotazione: {str(e)}', 'error')
+        return render_template('book_multi_flight.html', viaggio=viaggio)
+
 
 @app.route('/passeggero/prenotazione/<int:prenotazione_id>')
 @login_required

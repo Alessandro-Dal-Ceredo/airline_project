@@ -163,29 +163,55 @@
                 
                 <!-- Prezzo totale e azioni -->
                 {% if current_user.is_authenticated and current_user.tipo == 'passeggero' %}
-                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0b366; display: flex; justify-content: space-between; align-items: center;">
-                        <div style="font-size: 1.1rem; font-weight: 600; color: var(--primary-dark);">
-                            💰 Prezzi totali stimati:
-                            {% for classe in ['economy', 'business', 'first'] %}
-                                {% set prezzo_totale = viaggio.get_prezzo_minimo_per_classe(classe) %}
-                                {% if prezzo_totale %}
-                                    <div style="font-size: 0.9rem; margin: 2px 0;">
-                                        <strong>{{ classe|capitalize }}:</strong> €{{ "%.0f"|format(prezzo_totale) }}
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        <div style="text-align: right;">
-                            <small style="color: #666; font-size: 0.8rem; display: block; margin-bottom: 8px;">
-                                ⚠️ Prenota ogni segmento separatamente
-                            </small>
-                            <div style="font-size: 0.85rem; color: #888;">
-                                Posti minimi disponibili: 
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0b366;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                            <div style="font-size: 1.1rem; font-weight: 600; color: var(--primary-dark);">
+                                💰 Prezzi totali stimati:
                                 {% for classe in ['economy', 'business', 'first'] %}
-                                    {% set posti = viaggio.get_posti_disponibili_per_classe(classe) %}
-                                    {% if posti > 0 %}
-                                        {{ classe|capitalize }}: {{ posti }}
+                                    {% set prezzo_totale = viaggio.get_prezzo_minimo_per_classe(classe) %}
+                                    {% if prezzo_totale %}
+                                        <div style="font-size: 0.9rem; margin: 2px 0;">
+                                            <strong>{{ classe|capitalize }}:</strong> €{{ "%.0f"|format(prezzo_totale) }}
+                                        </div>
                                     {% endif %}
+                                {% endfor %}
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.85rem; color: #888;">
+                                    Posti minimi disponibili: 
+                                    {% for classe in ['economy', 'business', 'first'] %}
+                                        {% set posti = viaggio.get_posti_disponibili_per_classe(classe) %}
+                                        {% if posti > 0 %}
+                                            {{ classe|capitalize }}: {{ posti }}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Pulsante principale per prenotazione completa -->
+                        <div style="display: flex; gap: 1rem; align-items: center; justify-content: center; flex-wrap: wrap;">
+                            <a href="{{ url_for('book_multi_flight', volo_ids=viaggio.voli_segmenti|map(attribute='id')|join(',')) }}" 
+                               style="display: inline-block; padding: 12px 24px; background: #28a745; color: white; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease;">
+                                🎫 Prenota Viaggio Completo
+                            </a>
+                            <button type="button" onclick="toggleSegmentBooking(this)" 
+                                    style="padding: 8px 16px; background: #f8f9fa; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+                                Oppure prenota segmenti singolarmente ▼
+                            </button>
+                        </div>
+                        
+                        <!-- Prenotazione segmenti singoli (nascosta di default) -->
+                        <div class="segment-booking" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed #e0b366;">
+                            <small style="color: #666; font-size: 0.8rem; display: block; margin-bottom: 8px; text-align: center;">
+                                ⚠️ Prenotando singolarmente dovrai ricordarti di prenotare entrambi i segmenti
+                            </small>
+                            <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                                {% for i in range(viaggio.voli_segmenti|length) %}
+                                    <a href="{{ url_for('book_flight', volo_id=viaggio.voli_segmenti[i].id) }}" 
+                                       style="padding: 6px 12px; background: var(--primary); color: white; border-radius: 4px; text-decoration: none; font-size: 0.85rem;">
+                                       Prenota Segmento {{ i + 1 }}
+                                    </a>
                                 {% endfor %}
                             </div>
                         </div>
@@ -206,6 +232,18 @@ document.getElementById('modifySearch').addEventListener('click', function(e) {
     e.preventDefault();
     window.history.back();
 });
+
+// Funzione per mostrare/nascondere la sezione dei segmenti singoli
+function toggleSegmentBooking(button) {
+    const segmentSection = button.parentElement.nextElementSibling;
+    if (segmentSection.style.display === 'none') {
+        segmentSection.style.display = 'block';
+        button.innerHTML = 'Oppure prenota segmenti singolarmente ▲';
+    } else {
+        segmentSection.style.display = 'none';
+        button.innerHTML = 'Oppure prenota segmenti singolarmente ▼';
+    }
+}
 </script>
 
 {% endblock %}
