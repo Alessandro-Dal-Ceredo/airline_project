@@ -5,121 +5,79 @@
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">
-                    <i class="fas fa-plane"></i>
-                    {% if aereo %}
-                        Modifica Aereo: {{ aereo.modello }}
-                    {% else %}
-                        Aggiungi Nuovo Aereo alla Flotta
-                    {% endif %}
-                </h4>
+<div class="form_container">
+    <h2>{% if aereo %}Modifica Aereo: {{ aereo.modello }}{% else %}Aggiungi Nuovo Aereo{% endif %}</h2>
+    
+    <form method="POST">
+        <label for="modello">Modello Aereo *</label>
+        <input type="text" 
+               id="modello" 
+               name="modello" 
+               value="{{ aereo.modello if aereo else '' }}"
+               placeholder="es. Airbus A320, Boeing 737-800"
+               required>
+        <small>Inserisci il modello dell'aereo (es. A320, B737, A350)</small>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="posti_economy">Posti Economy *</label>
+                <input type="number" 
+                       id="posti_economy" 
+                       name="posti_economy" 
+                       value="{{ aereo.posti_economy if aereo else '' }}"
+                       min="0" 
+                       max="500"
+                       required>
             </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="modello" class="form-label">
-                            <i class="fas fa-plane"></i> Modello Aereo *
-                        </label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="modello" 
-                               name="modello" 
-                               value="{{ aereo.modello if aereo else '' }}"
-                               placeholder="es. Airbus A320, Boeing 737-800"
-                               required>
-                        <div class="form-text">Inserisci il modello dell'aereo (es. A320, B737, A350)</div>
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label for="posti_economy" class="form-label">
-                                <i class="fas fa-chair text-primary"></i> Posti Economy *
-                            </label>
-                            <input type="number" 
-                                   class="form-control" 
-                                   id="posti_economy" 
-                                   name="posti_economy" 
-                                   value="{{ aereo.posti_economy if aereo else '' }}"
-                                   min="0" 
-                                   max="500"
-                                   required>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="posti_business" class="form-label">
-                                <i class="fas fa-chair text-warning"></i> Posti Business
-                            </label>
-                            <input type="number" 
-                                   class="form-control" 
-                                   id="posti_business" 
-                                   name="posti_business" 
-                                   value="{{ aereo.posti_business if aereo else '0' }}"
-                                   min="0" 
-                                   max="100">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="posti_first" class="form-label">
-                                <i class="fas fa-chair text-success"></i> Posti First Class
-                            </label>
-                            <input type="number" 
-                                   class="form-control" 
-                                   id="posti_first" 
-                                   name="posti_first" 
-                                   value="{{ aereo.posti_first if aereo else '0' }}"
-                                   min="0" 
-                                   max="50">
-                        </div>
-                    </div>
-
-                    <div class="mt-3">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Totale posti:</strong> 
-                            <span id="totale-posti">{{ aereo.posti_totali if aereo else '0' }}</span>
-                        </div>
-                    </div>
-
-                    <hr>
-                    
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ url_for('dashboard_compagnia') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Torna alla Dashboard
-                        </a>
-                        
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i>
-                            {% if aereo %}Salva Modifiche{% else %}Aggiungi Aereo{% endif %}
-                        </button>
-                    </div>
-                </form>
+            <div class="form-group">
+                <label for="posti_business">Posti Business</label>
+                <input type="number" 
+                       id="posti_business" 
+                       name="posti_business" 
+                       value="{{ aereo.posti_business if aereo else '0' }}"
+                       min="0" 
+                       max="100">
+            </div>
+            <div class="form-group">
+                <label for="posti_first">Posti First Class</label>
+                <input type="number" 
+                       id="posti_first" 
+                       name="posti_first" 
+                       value="{{ aereo.posti_first if aereo else '0' }}"
+                       min="0" 
+                       max="50">
             </div>
         </div>
 
-        {% if aereo %}
-        <div class="card mt-3">
-            <div class="card-header bg-danger text-white">
-                <h6 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Zona Pericolo</h6>
-            </div>
-            <div class="card-body">
-                <p class="text-muted">
-                    Eliminare questo aereo rimuoverà definitivamente tutti i suoi dati. 
-                    Questa azione non può essere annullata.
-                </p>
-                <form method="POST" action="{{ url_for('elimina_aereo', aereo_id=aereo.id) }}" 
-                      onsubmit="return confirm('Sei sicuro di voler eliminare questo aereo? Questa azione non può essere annullata!')">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash"></i> Elimina Aereo
-                    </button>
-                </form>
-            </div>
+        <div class="card" style="background-color: #d1ecf1; padding: 10px; margin: 10px 0;">
+            <strong>Totale posti:</strong> 
+            <span id="totale-posti">{{ aereo.posti_totali if aereo else '0' }}</span>
         </div>
-        {% endif %}
-    </div>
+        
+        <div class="d-flex justify-content-between" style="margin-top: 20px;">
+            <a href="{{ url_for('dashboard_compagnia') }}" class="btn">← Torna alla Dashboard</a>
+            
+            <button type="submit" class="btn btn-primary">
+                {% if aereo %}Salva Modifiche{% else %}Aggiungi Aereo{% endif %}
+            </button>
+        </div>
+    </form>
 </div>
 
+{% if aereo %}
+<div class="card mt-3" style="border: 1px solid #dc3545;">
+    <h3 style="color: #dc3545;">Zona Pericolo</h3>
+    <p>Eliminare questo aereo rimuoverà definitivamente tutti i suoi dati. Questa azione non può essere annullata.</p>
+    <form method="POST" action="{{ url_for('elimina_aereo', aereo_id=aereo.id) }}" 
+          onsubmit="return confirm('Sei sicuro di voler eliminare questo aereo? Questa azione non può essere annullata!')">
+        <button type="submit" class="btn btn-danger">Elimina Aereo</button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}
+
+
+{% block scripts %}
 <script>
 // Calcolo automatico totale posti
 function calcolaTotale() {
@@ -130,12 +88,10 @@ function calcolaTotale() {
     document.getElementById('totale-posti').textContent = totale;
 }
 
-// Event listeners
 document.getElementById('posti_economy').addEventListener('input', calcolaTotale);
 document.getElementById('posti_business').addEventListener('input', calcolaTotale);
 document.getElementById('posti_first').addEventListener('input', calcolaTotale);
 
-// Calcola il totale al caricamento della pagina
 document.addEventListener('DOMContentLoaded', calcolaTotale);
 </script>
 {% endblock %}

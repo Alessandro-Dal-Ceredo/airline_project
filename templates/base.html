@@ -3,79 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="BD Airline - Il sistema di prenotazione voli più affidabile e semplice da usare">
-    <meta name="keywords" content="voli, prenotazione, aereo, viaggio, biglietti, BD Airline">
+    <meta name="description" content="BD Airline - Sistema di prenotazione voli">
     <meta name="author" content="BD Airline">
     
     <title>{% block title %}BD Airline - Sistema di Prenotazione Voli{% endblock %}</title>
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <!-- Custom CSS -->
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/alert.css') }}">
     
     {% block head %}{% endblock %}
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar" style="background: #f9f9f9; padding: 10px 0;">
-        <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
-            <a style="color: #1a73e8; font-size: 2.5rem; font-weight: bold; margin: 0;" href="{{ url_for('home') }}">✈ BD Airline</a>
-            <ul style="list-style: none; display: flex; gap: 20px; margin: 0; padding: 0;">
-                {% if current_user.is_authenticated %}
-                    {% if current_user.tipo == 'compagnia' %}
-                        <li><a href="{{ url_for('dashboard_compagnia') }}">Dashboard Compagnia</a></li>
-                    {% else %}
-                        <li><a href="{{ url_for('dashboard_passeggero') }}">Le Mie Prenotazioni</a></li>
-                    {% endif %}
-                    <li><a href="{{ url_for('logout') }}">Disconnettiti ({{ current_user.username }})</a></li>
+    <div class="navbar">
+        <span class="logo">✈ BD Airline</span>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('home') }}">Home</a></li>
+            {% if current_user.is_authenticated %}
+                {% if current_user.tipo == 'compagnia' %}
+                    <li><a href="{{ url_for('dashboard_compagnia') }}">Dashboard</a></li>
                 {% else %}
-                    <li><a href="{{ url_for('login') }}">Accedi</a></li>
-                    <li><a href="{{ url_for('register') }}">Registrati</a></li>
+                    <li><a href="{{ url_for('dashboard_passeggero') }}">Prenotazioni</a></li>
                 {% endif %}
-            </ul>
-        </div>
-    </nav>
-
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="container">
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
-    <!-- Main Content -->
-    <main class="container">
-        {% block content %}{% endblock %}
-    </main>
-
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="row">
-                <div class="col-6">
-                    <strong>✈ BD Airline</strong><br>
-                    Sistema di prenotazione voli - Progetto Base di Dati
-                </div>
-                <div class="col-6" style="text-align: right;">
-                    &copy; 2025 BD Airline.
-                </div>
-            </div>
-        </div>
-    </footer>
+                <li><a href="{{ url_for('logout') }}">Esci ({{ current_user.username }})</a></li>
+            {% else %}
+                <li><a href="{{ url_for('login') }}">Accedi</a></li>
+                <li><a href="{{ url_for('register') }}">Registrati</a></li>
+            {% endif %}
+        </ul>
+    </div>
     
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Main Container -->
+    <div class="container">
+        {% block content %}{% endblock %}
+        
+        <!-- Alert Container for Flash Messages -->
+        <div class="alert-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert {{ 'danger' if category == 'error' else category }} visible">
+                            <span class="closebtn" onclick="hideAlert('{{ 'danger' if category == 'error' else category }}')">&times;</span>
+                            <strong>{{ category|capitalize }}!</strong>
+                            <p>{{ message }}</p>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Hidden alerts for JavaScript use -->
+            <div class="alert danger">
+                <span class="closebtn" onclick="hideAlert('danger')">&times;</span>
+                <strong>Errore!</strong>
+                <p name="p_danger"></p>
+            </div>
+            
+            <div class="alert success">
+                <span class="closebtn" onclick="hideAlert('success')">&times;</span>
+                <strong>Successo!</strong>
+                <p name="p_success"></p>
+            </div>
+            
+            <div class="alert info">
+                <span class="closebtn" onclick="hideAlert('info')">&times;</span>
+                <strong>Info!</strong>
+                <p name="p_info"></p>
+            </div>
+            
+            <div class="alert warning">
+                <span class="closebtn" onclick="hideAlert('warning')">&times;</span>
+                <strong>Attenzione!</strong>
+                <p name="p_warning"></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Bar -->
+    <div class="bottom-bar">
+        <a href="#" class="copy-link" id="copyLinkTelephone">Tel: +39 123 456 7890</a>
+        <a href="#" class="copy-link" id="copyLinkMail">Email: info@bdairline.com</a>
+    </div>
     
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
