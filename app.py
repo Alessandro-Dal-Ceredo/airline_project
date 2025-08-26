@@ -48,7 +48,43 @@ app = create_app()
 def home():
     """Homepage con ricerca voli (accessibile a tutti)"""
     aeroporti = Aeroporto.query.order_by(Aeroporto.citta).all()
-    return render_template('home.html', aeroporti=aeroporti)
+    
+    # Query per trovare le destinazioni più popolari (top 3)
+    from models import Biglietto, Prenotazione, Volo
+    from sqlalchemy import func
+    
+    destinazioni_popolari = db.session.query(
+        Tratta.aeroporto_arrivo,
+        func.count(Biglietto.id).label('num_prenotazioni')
+    ).join(
+        Volo, Tratta.id == Volo.tratta_id
+    ).join(
+        Biglietto, Volo.id == Biglietto.volo_id
+    ).join(
+        Prenotazione, Biglietto.prenotazione_id == Prenotazione.id
+    ).filter(
+        Prenotazione.stato == 'confermata'  # Solo prenotazioni confermate
+    ).group_by(
+        Tratta.aeroporto_arrivo
+    ).order_by(
+        func.count(Biglietto.id).desc()
+    ).limit(3).all()
+    
+    # Ottieni i dettagli degli aeroporti per le destinazioni popolari
+    destinazioni_con_dettagli = []
+    for dest_code, num_prenotazioni in destinazioni_popolari:
+        aeroporto = Aeroporto.query.filter_by(codice=dest_code).first()
+        if aeroporto:
+            destinazioni_con_dettagli.append({
+                'codice': dest_code,
+                'citta': aeroporto.citta,
+                'paese': aeroporto.paese,
+                'num_prenotazioni': num_prenotazioni
+            })
+    
+    return render_template('home.html', 
+                         aeroporti=aeroporti,
+                         destinazioni_popolari=destinazioni_con_dettagli)
 
 @app.route('/search')
 def search_flights():

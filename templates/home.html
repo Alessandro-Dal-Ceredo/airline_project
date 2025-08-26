@@ -68,6 +68,39 @@
     </div>
 </div>
 
+<!-- Destinazioni Popolari -->
+<div class="col-12">
+        <h3 class="text-center mb-4" style="color: #1a73e8; font-weight: bold;"> Destinazioni Più Popolari
+        </h3>
+        {% if destinazioni_popolari %}
+            <div class="row g-4">
+                {% for destinazione in destinazioni_popolari %}
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">{{ destinazione.citta }} ({{ destinazione.codice }})</h5>
+                            <p class="card-text text-muted">{{ destinazione.paese }}</p>
+                            <div class="align-items-center">
+                                <h7 class="text-center mb-4" style="color: #1a73e8; font-weight: bold;"> 
+                                    {{ destinazione.num_prenotazioni }} prenotazioni negli ultimi 30 giorni!
+                                </h7>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <div class="text-muted mb-3">
+                    <i class="fas fa-plane fa-3x"></i>
+                </div>
+                <h5>Nessuna destinazione ancora</h5>
+                <p>Le destinazioni più popolari appariranno qui quando ci saranno delle prenotazioni.</p>
+            </div>
+        {% endif %}
+</div>
+
 <!-- CTA Section -->
 {% if not current_user.is_authenticated %}
 <div class="cta-section mt-5">
