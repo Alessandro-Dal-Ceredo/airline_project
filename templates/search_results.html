@@ -191,10 +191,15 @@
                         
                         <!-- Pulsante principale per prenotazione completa -->
                         <div style="display: flex; gap: 1rem; align-items: center; justify-content: center; flex-wrap: wrap;">
-                            <a href="{{ url_for('book_multi_flight', volo_ids=viaggio.voli_segmenti|map(attribute='id')|join(',')) }}" 
-                               style="display: inline-block; padding: 12px 24px; background: #28a745; color: white; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease;">
+                            <button type="button" 
+                                    onclick="prenotaViaggioCompleto([
+                                        {% for i in range(viaggio.voli_segmenti|length) %}
+                                            '{{ url_for('book_flight', volo_id=viaggio.voli_segmenti[i].id) }}'{% if not loop.last %},{% endif %}
+                                        {% endfor %}
+                                    ])" 
+                                    style="padding: 12px 24px; background: #28a745; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease; cursor: pointer;">
                                 🎫 Prenota Viaggio Completo
-                            </a>
+                            </button>
                             <button type="button" onclick="toggleSegmentBooking(this)" 
                                     style="padding: 8px 16px; background: #f8f9fa; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
                                 Oppure prenota segmenti singolarmente ▼
@@ -243,6 +248,31 @@ function toggleSegmentBooking(button) {
         segmentSection.style.display = 'none';
         button.innerHTML = 'Oppure prenota segmenti singolarmente ▼';
     }
+}
+
+// Funzione per prenotare il viaggio completo aprendo due schede
+function prenotaViaggioCompleto(urls) {
+    // Apri la prima scheda per il primo segmento
+    if (urls.length > 0) {
+        window.open(urls[0], '_blank');
+    }
+    
+    // Attendi un momento e apri la seconda scheda per il secondo segmento
+    if (urls.length > 1) {
+        setTimeout(function() {
+            window.open(urls[1], '_blank');
+        }, 500); // Aspetta 500ms tra l'apertura delle due schede
+    }
+    
+    // Se ci sono più di 2 segmenti (raro ma possibile)
+    for (let i = 2; i < urls.length; i++) {
+        setTimeout(function() {
+            window.open(urls[i], '_blank');
+        }, 500 * (i)); // Incrementa il ritardo per ogni scheda aggiuntiva
+    }
+    
+    // Mostra un messaggio di conferma
+    alert('Si apriranno ' + urls.length + ' schede del browser, una per ogni segmento del tuo viaggio.\n\nCompleta la prenotazione in ciascuna scheda per prenotare l\'intero viaggio.');
 }
 </script>
 

@@ -349,19 +349,34 @@ def dashboard_compagnia():
 @app.route('/dashboard/passeggero')
 @login_required
 def dashboard_passeggero():
-    """Dashboard per passeggeri"""
+    """Dashboard per passeggeri con filtri per stato prenotazione"""
     if current_user.tipo != 'passeggero':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
     
     passeggero = current_user.passeggero
     
-    # Prenotazioni recenti
-    prenotazioni_recenti = passeggero.prenotazioni[:5]  # Prime 5
+    # Ottieni il filtro stato dalla query string
+    filtro_stato = request.args.get('stato', 'tutte')
+    
+    # Query base per le prenotazioni del passeggero
+    from models import Prenotazione
+    prenotazioni_query = Prenotazione.query.filter_by(passeggero_id=passeggero.id)
+    
+    # Applica il filtro in base allo stato
+    if filtro_stato == 'confermate':
+        prenotazioni_query = prenotazioni_query.filter_by(stato='confermata')
+    elif filtro_stato == 'cancellate':
+        prenotazioni_query = prenotazioni_query.filter_by(stato='cancellata')
+    # Se 'tutte', non applichiamo filtri aggiuntivi
+    
+    # Ordina per data di acquisto (più recenti prima)
+    prenotazioni = prenotazioni_query.order_by(Prenotazione.data_acquisto.desc()).all()
     
     return render_template('dashboard_passeggero.html',
                          passeggero=passeggero,
-                         prenotazioni=prenotazioni_recenti)
+                         prenotazioni=prenotazioni,
+                         filtro_corrente=filtro_stato)
 
 # ==========================================
 # BOOKING/PRENOTAZIONI
