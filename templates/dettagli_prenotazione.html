@@ -183,11 +183,6 @@
                                     
                                     <!-- I controlli di data sono gestiti lato server nelle routes -->
 
-                                    {% if can_modify %}
-                                    <a href="{{ url_for('modifica_prenotazione', prenotazione_id=prenotazione.id) }}" class="btn btn-warning">
-                                        <i class="fas fa-edit"></i> Richiedi Modifiche
-                                    </a>
-                                    {% endif %}
 
                                     {% if can_cancel %}
                                     <form method="POST" action="{{ url_for('cancel_booking', prenotazione_id=prenotazione.id) }}" class="d-inline">
