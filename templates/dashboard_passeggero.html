@@ -117,10 +117,7 @@
                                             {% if prenotazione.stato == 'confermata' %}
                                                 {% set can_modify = true %}
                                                 {% set can_cancel = true %}
-                                                
-                                                <!-- I controlli di data sono gestiti lato server nelle routes -->
-                                                
-                                                
+
                                                 {% if can_cancel %}
                                                 <form method="POST" action="{{ url_for('cancel_booking', prenotazione_id=prenotazione.id) }}" class="btn btn-outline-warning btn-sm me-1">
                                                     <button type="submit" class="btn btn-outline-warning btn-sm me-1"

@@ -33,7 +33,7 @@
         
         <!-- VOLI DIRETTI -->
         {% if voli_andata and voli_andata|length > 0 %}
-        <h3 style="color: var(--primary); margin: 2rem 0 1rem 0; font-size: 1.4rem;">✈️ Voli Diretti</h3>
+        <h3 style="color: var(--primary); margin: 2rem 0 1rem 0; font-size: 1.4rem;">✈Voli Diretti</h3>
         <div>
             {% for volo in voli_andata %}
             <div style="border: 1px solid var(--grey-medium); background: var(--text-light); padding: 1rem; margin-bottom: 1rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
@@ -79,7 +79,7 @@
         
         <!-- VIAGGI CON SCALI -->
         {% if viaggi_combinati and viaggi_combinati|length > 0 %}
-        <h3 style="color: var(--primary); margin: 2rem 0 1rem 0; font-size: 1.4rem;">🔄 Viaggi con Scali</h3>
+        <h3 style="color: var(--primary); margin: 2rem 0 1rem 0; font-size: 1.4rem;"> Voli con Scali</h3>
         <div>
             {% for viaggio in viaggi_combinati %}
             <div style="border: 1px solid #e0b366; background: #fffdf5; padding: 1rem; margin-bottom: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
@@ -111,41 +111,50 @@
                 
                 <!-- Segmenti di volo -->
                 {% for i in range(viaggio.voli_segmenti|length) %}
-                    {% set volo_segmento = viaggio.voli_segmenti[i] %}
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; margin-bottom: 0.5rem; background: white; border: 1px solid #f0f0f0; border-radius: 6px;">
-                        <div style="flex: 1;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div style="font-weight: 600; color: var(--primary); font-size: 1.1rem;">
-                                    {{ volo_segmento.partenza.strftime('%H:%M') }} → {{ volo_segmento.arrivo.strftime('%H:%M') }}
-                                </div>
-                                <div style="font-size: 0.9rem; color: #555;">
-                                    {{ volo_segmento.tratta.aeroporto_partenza }} → {{ volo_segmento.tratta.aeroporto_arrivo }}
+                    {% set volo = viaggio.voli_segmenti[i] %}
+                    <div style="border: 1px solid var(--grey-medium); background: var(--text-light); padding: 1rem; margin-bottom: 1rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: left;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 0.2rem;">
+                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--primary);">
+                                    {{ volo.partenza.strftime('%H:%M') }} &rarr; {{ volo.arrivo.strftime('%H:%M') }}
                                 </div>
                                 {% if i == 0 %}
-                                    <span style="background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">Partenza</span>
+                                    <span style="background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">Segmento Partenza</span>
                                 {% elif i == viaggio.voli_segmenti|length - 1 %}
-                                    <span style="background: #e8f5e8; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">Arrivo</span>
+                                    <span style="background: #e8f5e8; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">Segmento Arrivo</span>
+                                {% else %}
+                                    <span style="background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">Segmento {{ i + 1 }}</span>
                                 {% endif %}
                             </div>
-                            <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
-                                {{ volo_segmento.tratta.compagnia.nome_compagnia }} - {{ volo_segmento.aereo.modello }} 
-                                | {{ volo_segmento.posti_disponibili }} posti disponibili
+                            <div style="font-size: 0.9rem; color: #555; margin-bottom: 0.2rem; text-align: left;">
+                                {{ volo.tratta.aeroporto_partenza }} &rarr; {{ volo.tratta.aeroporto_arrivo }} &nbsp;|&nbsp; {{ volo.partenza.strftime('%d/%m/%Y') }}
+                            </div>
+                            <div style="font-weight: 600; margin-bottom: 0.2rem; color: #444; text-align: left;">
+                                {{ volo.tratta.compagnia.nome_compagnia if volo.tratta.compagnia else "N/A" }} - {{ volo.aereo.modello if volo.aereo else "N/A" }}
+                            </div>
+                            <div style="font-size: 0.85rem; color: {{ 'green' if volo.posti_disponibili > 10 else 'orange' if volo.posti_disponibili > 5 else 'red' }}; text-align: left;">
+                                {{ volo.posti_disponibili }} posti disponibili
                             </div>
                         </div>
-                        
-                        <div style="text-align: center; min-width: 120px;">
-                            {% if volo_segmento.prezzi %}
-                                <div style="font-size: 0.85rem; margin-bottom: 0.5rem;">
-                                    {% for prezzo in volo_segmento.prezzi %}
-                                        <div><strong>{{ prezzo.classe|capitalize }}:</strong> €{{ "%.0f"|format(prezzo.prezzo) }}</div>
-                                    {% endfor %}
+                        <div style="text-align: center; min-width: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                            {% if volo.prezzi %}
+                                <div style="font-weight: 700; font-size: 1.15rem; margin-bottom: 0.5rem; color: var(--primary-dark);">
+                                    Prezzi:
                                 </div>
+                                <ul style="list-style: none; padding: 0; margin: 0 0 0.8rem 0; font-size: 0.9rem; text-align: center;">
+                                {% for prezzo in volo.prezzi %}
+                                  <li style="margin-bottom: 0.2rem;">
+                                    <strong>{{ prezzo.classe|capitalize }}:</strong> €{{ "%.0f"|format(prezzo.prezzo) }}
+                                  </li>
+                                {% endfor %}
+                                </ul>
+                            {% else %}
+                                <div style="font-weight: 700; font-size: 1.15rem; color: var(--primary-dark); margin-bottom: 0.8rem;">Prezzo: € N/D</div>
                             {% endif %}
                             {% if current_user.is_authenticated and current_user.tipo == 'passeggero' %}
-                                <a href="{{ url_for('book_flight', volo_id=volo_segmento.id) }}" 
-                                   style="display: inline-block; padding: 6px 12px; background: var(--primary); color: white; border-radius: 4px; text-decoration: none; font-size: 0.85rem; font-weight: 500;">
-                                   Prenota Segmento {{ i + 1 }}
-                                </a>
+                            <a href="{{ url_for('book_flight', volo_id=volo.id) }}" style="display: inline-block; padding: 8px 14px; background: var(--primary); color: white; border-radius: 4px; text-decoration: none; font-weight: 500;">Prenota</a>
+                            {% else %}
+                            <small style="color: #999; text-align: center;">Effettua il login per prenotare</small>
                             {% endif %}
                         </div>
                     </div>
@@ -156,7 +165,7 @@
                         {% set ore_conn = (tempo_connessione.total_seconds() // 3600) | int %}
                         {% set min_conn = ((tempo_connessione.total_seconds() % 3600) // 60) | int %}
                         <div style="text-align: center; margin: 0.5rem 0; padding: 0.5rem; background: #f8f9fa; border-left: 4px solid #ffc107; font-size: 0.9rem; color: #856404;">
-                            ⏱️ <strong>Scalo a {{ viaggio.aeroporti_scalo[i] }}</strong> - Tempo di connessione: {{ ore_conn }}h {{ min_conn }}m
+                             <strong>Scalo a {{ viaggio.aeroporti_scalo[i] }}</strong> - Tempo di connessione: {{ ore_conn }}h {{ min_conn }}m
                         </div>
                     {% endif %}
                 {% endfor %}
@@ -166,7 +175,7 @@
                     <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0b366;">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                             <div style="font-size: 1.1rem; font-weight: 600; color: var(--primary-dark);">
-                                💰 Prezzi totali stimati:
+                                Prezzi totali stimati:
                                 {% for classe in ['economy', 'business', 'first'] %}
                                     {% set prezzo_totale = viaggio.get_prezzo_minimo_per_classe(classe) %}
                                     {% if prezzo_totale %}
@@ -186,38 +195,6 @@
                                         {% endif %}
                                     {% endfor %}
                                 </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Pulsante principale per prenotazione completa -->
-                        <div style="display: flex; gap: 1rem; align-items: center; justify-content: center; flex-wrap: wrap;">
-                            <button type="button" 
-                                    onclick="prenotaViaggioCompleto([
-                                        {% for i in range(viaggio.voli_segmenti|length) %}
-                                            '{{ url_for('book_flight', volo_id=viaggio.voli_segmenti[i].id) }}'{% if not loop.last %},{% endif %}
-                                        {% endfor %}
-                                    ])" 
-                                    style="padding: 12px 24px; background: #28a745; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease; cursor: pointer;">
-                                🎫 Prenota Viaggio Completo
-                            </button>
-                            <button type="button" onclick="toggleSegmentBooking(this)" 
-                                    style="padding: 8px 16px; background: #f8f9fa; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
-                                Oppure prenota segmenti singolarmente ▼
-                            </button>
-                        </div>
-                        
-                        <!-- Prenotazione segmenti singoli (nascosta di default) -->
-                        <div class="segment-booking" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed #e0b366;">
-                            <small style="color: #666; font-size: 0.8rem; display: block; margin-bottom: 8px; text-align: center;">
-                                ⚠️ Prenotando singolarmente dovrai ricordarti di prenotare entrambi i segmenti
-                            </small>
-                            <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
-                                {% for i in range(viaggio.voli_segmenti|length) %}
-                                    <a href="{{ url_for('book_flight', volo_id=viaggio.voli_segmenti[i].id) }}" 
-                                       style="padding: 6px 12px; background: var(--primary); color: white; border-radius: 4px; text-decoration: none; font-size: 0.85rem;">
-                                       Prenota Segmento {{ i + 1 }}
-                                    </a>
-                                {% endfor %}
                             </div>
                         </div>
                     </div>
