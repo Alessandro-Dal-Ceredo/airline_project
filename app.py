@@ -93,6 +93,8 @@ def search_flights():
     destinazione = request.args.get('destinazione', '')
     data_partenza = request.args.get('data_partenza', '')
     tipo_ricerca = request.args.get('tipo_ricerca', 'con_scali')
+    sort_by = request.args.get('sort_by', 'orario')  # orario, prezzo, durata
+    sort_order = request.args.get('sort_order', 'asc')  # asc, desc
     
     voli_andata = []
     viaggi_combinati = []
@@ -109,6 +111,10 @@ def search_flights():
             voli_andata, viaggi_combinati = search_flights_with_stopovers(origine, destinazione, data_partenza)
             print(f"DEBUG: Ricerca CON SCALI con origine={origine}, destinazione={destinazione}, data={data_partenza}")
             print(f"DEBUG: Trovati {len(voli_andata)} voli diretti + {len(viaggi_combinati)} viaggi con scali")
+        
+        # Applica ordinamento ai risultati
+        voli_andata = sort_flights(voli_andata, sort_by, sort_order)
+        viaggi_combinati = sort_combined_trips(viaggi_combinati, sort_by, sort_order)
     
     return render_template('search_results.html', 
                          voli_andata=voli_andata,
@@ -117,7 +123,69 @@ def search_flights():
                          origine=origine,
                          destinazione=destinazione,
                          data_partenza=data_partenza,
-                         tipo_ricerca=tipo_ricerca)
+                         tipo_ricerca=tipo_ricerca,
+                         sort_by=sort_by,
+                         sort_order=sort_order)
+
+
+def sort_flights(voli, sort_by, sort_order):
+    """Ordina una lista di voli in base al criterio specificato"""
+    if not voli:
+        return voli
+    
+    reverse = (sort_order == 'desc')
+    
+    if sort_by == 'prezzo':
+        # Ordina per prezzo minimo tra tutte le classi
+        def get_min_price(volo):
+            if not volo.prezzi:
+                return float('inf')  # Metti alla fine i voli senza prezzi
+            return min(prezzo.prezzo for prezzo in volo.prezzi)
+        
+        return sorted(voli, key=get_min_price, reverse=reverse)
+    
+    elif sort_by == 'durata':
+        # Ordina per durata del volo
+        def get_durata(volo):
+            return (volo.arrivo - volo.partenza).total_seconds()
+        
+        return sorted(voli, key=get_durata, reverse=reverse)
+    
+    else:  # sort_by == 'orario' (default)
+        # Ordina per orario di partenza
+        return sorted(voli, key=lambda v: v.partenza, reverse=reverse)
+
+
+def sort_combined_trips(viaggi, sort_by, sort_order):
+    """Ordina una lista di viaggi combinati in base al criterio specificato"""
+    if not viaggi:
+        return viaggi
+    
+    reverse = (sort_order == 'desc')
+    
+    if sort_by == 'prezzo':
+        # Ordina per somma dei prezzi minimi di tutti i segmenti
+        def get_total_min_price(viaggio):
+            total = 0
+            for volo in viaggio.voli_segmenti:
+                if volo.prezzi:
+                    total += min(prezzo.prezzo for prezzo in volo.prezzi)
+                else:
+                    return float('inf')  # Viaggi senza prezzi alla fine
+            return total
+        
+        return sorted(viaggi, key=get_total_min_price, reverse=reverse)
+    
+    elif sort_by == 'durata':
+        # Ordina per durata totale del viaggio
+        def get_durata_totale(viaggio):
+            return viaggio.durata_totale.total_seconds()
+        
+        return sorted(viaggi, key=get_durata_totale, reverse=reverse)
+    
+    else:  # sort_by == 'orario' (default)
+        # Ordina per orario di partenza del primo segmento
+        return sorted(viaggi, key=lambda v: v.partenza_totale, reverse=reverse)
 
 
 def search_direct_flights(origine, destinazione, data_partenza):
@@ -1175,6 +1243,57 @@ def nuovo_volo():
             flash(f'Errore durante l\'aggiunta del volo: {str(e)}', 'error')
     
     return render_template('form_volo.html', tratte=compagnia.tratte, aerei=compagnia.aerei)
+
+@app.route('/compagnia/voli/<int:volo_id>/modifica', methods=['GET', 'POST'])
+@login_required
+def modifica_volo(volo_id):
+    """Modifica volo esistente"""
+    if current_user.tipo != 'compagnia':
+        flash('Accesso non autorizzato.', 'error')
+        return redirect(url_for('home'))
+    
+    compagnia = current_user.compagnia
+    
+    # Ottieni il volo da modificare
+    volo = db.session.query(Volo).join(Tratta).filter(
+        Volo.id == volo_id,
+        Tratta.compagnia_id == current_user.id
+    ).first()
+    
+    if not volo:
+        flash('Volo non trovato.', 'error')
+        return redirect(url_for('dashboard_compagnia'))
+    
+    if request.method == 'POST':
+        try:
+            data_partenza = request.form.get('data_partenza')
+            ora_partenza = request.form.get('ora_partenza') 
+            data_arrivo = request.form.get('data_arrivo')
+            ora_arrivo = request.form.get('ora_arrivo')
+            
+            from datetime import datetime
+            partenza_dt = datetime.strptime(f'{data_partenza} {ora_partenza}', '%Y-%m-%d %H:%M')
+            arrivo_dt = datetime.strptime(f'{data_arrivo} {ora_arrivo}', '%Y-%m-%d %H:%M')
+            
+            if partenza_dt >= arrivo_dt:
+                flash('La data di arrivo deve essere successiva alla partenza.', 'error')
+                return render_template('form_volo.html', volo=volo, tratte=compagnia.tratte, aerei=compagnia.aerei, modifica=True)
+            
+            # Aggiorna il volo
+            volo.partenza = partenza_dt
+            volo.arrivo = arrivo_dt
+            
+            db.session.commit()
+            flash('Volo modificato con successo!', 'success')
+            return redirect(url_for('dashboard_compagnia'))
+            
+        except ValueError:
+            flash('Formato data/ora non valido.', 'error')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Errore durante la modifica: {str(e)}', 'error')
+    
+    return render_template('form_volo.html', volo=volo, tratte=compagnia.tratte, aerei=compagnia.aerei, modifica=True)
 
 @app.route('/compagnia/voli/<int:volo_id>/elimina', methods=['POST'])
 @login_required

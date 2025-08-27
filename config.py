@@ -8,8 +8,8 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     
     # Configurazione Database PostgreSQL
-    POSTGRES_USER = os.environ.get('POSTGRES_USER') or 'dalce'
-    POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD') or ''
+    POSTGRES_USER = os.environ.get('POSTGRES_USER') or 'postgres'
+    POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD') or 'admin123'
     POSTGRES_HOST = os.environ.get('POSTGRES_HOST') or 'localhost'
     POSTGRES_PORT = os.environ.get('POSTGRES_PORT') or '5432'
     POSTGRES_DB = os.environ.get('POSTGRES_DB') or 'flight_booking'
