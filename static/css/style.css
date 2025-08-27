@@ -351,6 +351,13 @@ table tr:hover {
 /* DASHBOARD CARDS */
 .dashboard-grid {
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.dashboard-grid2 {
+    display: grid;
     grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
     gap: 20px;
     margin: 20px 0;
