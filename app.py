@@ -5,7 +5,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError
 from config import config
-from models import db, Utente, CompagniaAerea, Passeggero, Aeroporto, Volo, Tratta, TipoUtente
+from models import *
 
 def create_app(config_name=None, config_overrides=None):
     """Factory function per creare l'app Flask

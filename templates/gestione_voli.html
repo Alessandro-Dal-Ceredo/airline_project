@@ -115,9 +115,6 @@
                                 <label for="stato" class="form-label">Stato:</label>
                                 <select name="stato" id="stato" class="form-select">
                                     <option value="">Tutti</option>
-                                    <option value="futuri" {% if stato_volo == 'futuri' %}selected{% endif %}>
-                                        Futuri
-                                    </option>
                                     <option value="passati" {% if stato_volo == 'passati' %}selected{% endif %}>
                                         Passati
                                     </option>
@@ -241,25 +238,12 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <!-- Pulsante elimina solo per voli futuri senza prenotazioni -->
-                                            {% if volo.partenza > ora_corrente %}
-                                            <form method="POST" action="{{ url_for('elimina_volo', volo_id=volo.id) }}" 
-                                                  class="d-inline" 
-                                                  onsubmit="return confirm('Sei sicuro di voler eliminare questo volo?')">
-                                                <button type="submit" class="btn btn-outline-danger btn-sm" 
-                                                        title="Elimina volo">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                            {% else %}
-                                            <button class="btn btn-outline-secondary btn-sm" disabled 
-                                                    title="Volo già partito">
-                                                <i class="fas fa-lock"></i>
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                                    </td>
+                                            <div>
+                                                <form method="POST" action="{{ url_for('elimina_volo', volo_id=volo.id) }}" style="display: inline;" onsubmit="return confirm('Sei sicuro di voler eliminare questo volo?')">
+                                                    <button type="submit" class="btn btn-danger">Elimina</button>
+                                                </form>
+                                            </div>  
+                                        </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
