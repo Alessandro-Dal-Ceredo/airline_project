@@ -4,7 +4,6 @@
 
 {% block content %}
 <h1>{{ compagnia.nome_compagnia }}</h1>
-<p>Dashboard Compagnia Aerea - Utente: {{ current_user.username }}</p>
 
 <!-- Statistiche Generali -->
 <div class="dashboard-grid">
@@ -45,7 +44,7 @@
         <div class="tab-pane active" id="voli">
             <div class="card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3>I Tuoi Voli</h3>
+                    <h3>Voli</h3>
                     <div>
                         <a href="{{ url_for('gestione_voli') }}" class="btn btn-primary">Vedi Tutti</a>
                         <a href="{{ url_for('nuovo_volo') }}" class="btn btn-success">+ Nuovo Volo</a>
@@ -108,12 +107,7 @@
                             </table>
                         {% else %}
                             <div class="text-center">
-                                <div style="font-size: 3em;">✈️</div>
-                                <h5>Nessun Volo Programmato</h5>
-                                <p>Inizia aggiungendo il tuo primo volo!</p>
-                                <a href="{{ url_for('nuovo_volo') }}" class="btn">
-                                    ➕ Aggiungi Volo
-                                </a>
+                                <h2>Nessun Volo</h2>
                             </div>
                         {% endif %}
                     </div>
