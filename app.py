@@ -346,6 +346,35 @@ def logout():
     return redirect(url_for('home'))
 
 # ==========================================
+# FUNZIONI HELPER
+# ==========================================
+
+def calcola_ricavi_totali_compagnia(compagnia_id):
+    """
+    Calcola i ricavi totali di una compagnia aerea
+    basandosi sulle prenotazioni confermate per i voli della compagnia
+    """
+    from models import Prenotazione, Biglietto, Volo, Tratta
+    from sqlalchemy import func
+    
+    # Somma i costi totali delle prenotazioni confermate
+    # per i voli che appartengono alle tratte della compagnia
+    ricavi = db.session.query(
+        func.sum(Prenotazione.costo_totale)
+    ).join(
+        Biglietto, Prenotazione.id == Biglietto.prenotazione_id
+    ).join(
+        Volo, Biglietto.volo_id == Volo.id
+    ).join(
+        Tratta, Volo.tratta_id == Tratta.id
+    ).filter(
+        Tratta.compagnia_id == compagnia_id,
+        Prenotazione.stato == 'confermata'
+    ).scalar()
+    
+    return float(ricavi) if ricavi else 0.0
+
+# ==========================================
 # DASHBOARD UTENTI
 # ==========================================
 
@@ -375,12 +404,16 @@ def dashboard_compagnia():
     
     voli_recenti = voli_query.all()
     
+    # Calcola i ricavi totali della compagnia
+    ricavi_totali = calcola_ricavi_totali_compagnia(compagnia.id)
+    
     return render_template('dashboard_compagnia.html',
                          compagnia=compagnia,
                          num_voli=num_voli,
                          num_aerei=num_aerei,
                          num_tratte=num_tratte,
-                         voli_recenti=voli_recenti)
+                         voli_recenti=voli_recenti,
+                         ricavi_totali=ricavi_totali)
 
 @app.route('/dashboard/passeggero')
 @login_required
@@ -1142,57 +1175,6 @@ def nuovo_volo():
             flash(f'Errore durante l\'aggiunta del volo: {str(e)}', 'error')
     
     return render_template('form_volo.html', tratte=compagnia.tratte, aerei=compagnia.aerei)
-
-@app.route('/compagnia/voli/<int:volo_id>/modifica', methods=['GET', 'POST'])
-@login_required
-def modifica_volo(volo_id):
-    """Modifica volo esistente"""
-    if current_user.tipo != 'compagnia':
-        flash('Accesso non autorizzato.', 'error')
-        return redirect(url_for('home'))
-    
-    compagnia = current_user.compagnia
-    
-    # Ottieni il volo da modificare
-    volo = db.session.query(Volo).join(Tratta).filter(
-        Volo.id == volo_id,
-        Tratta.compagnia_id == current_user.id
-    ).first()
-    
-    if not volo:
-        flash('Volo non trovato.', 'error')
-        return redirect(url_for('dashboard_compagnia'))
-    
-    if request.method == 'POST':
-        try:
-            data_partenza = request.form.get('data_partenza')
-            ora_partenza = request.form.get('ora_partenza') 
-            data_arrivo = request.form.get('data_arrivo')
-            ora_arrivo = request.form.get('ora_arrivo')
-            
-            from datetime import datetime
-            partenza_dt = datetime.strptime(f'{data_partenza} {ora_partenza}', '%Y-%m-%d %H:%M')
-            arrivo_dt = datetime.strptime(f'{data_arrivo} {ora_arrivo}', '%Y-%m-%d %H:%M')
-            
-            if partenza_dt >= arrivo_dt:
-                flash('La data di arrivo deve essere successiva alla partenza.', 'error')
-                return render_template('form_volo.html', volo=volo, tratte=compagnia.tratte, aerei=compagnia.aerei, modifica=True)
-            
-            # Aggiorna il volo
-            volo.partenza = partenza_dt
-            volo.arrivo = arrivo_dt
-            
-            db.session.commit()
-            flash('Volo modificato con successo!', 'success')
-            return redirect(url_for('dashboard_compagnia'))
-            
-        except ValueError:
-            flash('Formato data/ora non valido.', 'error')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Errore durante la modifica: {str(e)}', 'error')
-    
-    return render_template('form_volo.html', volo=volo, tratte=compagnia.tratte, aerei=compagnia.aerei, modifica=True)
 
 @app.route('/compagnia/voli/<int:volo_id>/elimina', methods=['POST'])
 @login_required

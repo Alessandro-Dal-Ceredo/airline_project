@@ -20,7 +20,7 @@
 
         <div class="form-row">
             <div class="form-group">
-                <label for="posti_economy">Posti Economy *</label>
+                <label for="posti_economy">Economy *</label>
                 <input type="number" 
                        id="posti_economy" 
                        name="posti_economy" 
@@ -30,16 +30,16 @@
                        required>
             </div>
             <div class="form-group">
-                <label for="posti_business">Posti Business</label>
+                <label for="posti_business">Business</label>
                 <input type="number" 
                        id="posti_business" 
                        name="posti_business" 
                        value="{{ aereo.posti_business if aereo else '0' }}"
-                       min="0" 
+                       min="0"  
                        max="100">
             </div>
             <div class="form-group">
-                <label for="posti_first">Posti First Class</label>
+                <label for="posti_first">First Class</label>
                 <input type="number" 
                        id="posti_first" 
                        name="posti_first" 
@@ -63,17 +63,6 @@
         </div>
     </form>
 </div>
-
-{% if aereo %}
-<div class="card mt-3" style="border: 1px solid #dc3545;">
-    <h3 style="color: #dc3545;">Zona Pericolo</h3>
-    <p>Eliminare questo aereo rimuoverà definitivamente tutti i suoi dati. Questa azione non può essere annullata.</p>
-    <form method="POST" action="{{ url_for('elimina_aereo', aereo_id=aereo.id) }}" 
-          onsubmit="return confirm('Sei sicuro di voler eliminare questo aereo? Questa azione non può essere annullata!')">
-        <button type="submit" class="btn btn-danger">Elimina Aereo</button>
-    </form>
-</div>
-{% endif %}
 {% endblock %}
 
 
