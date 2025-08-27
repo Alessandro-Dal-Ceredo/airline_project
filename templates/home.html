@@ -45,9 +45,8 @@
                     <input type="radio" name="tipo_ricerca" value="con_scali" checked>
                 </label>
                 <label>
-                    <div>Solo voli diretti
-                    <input type="radio" name="tipo_ricerca" value="solo_diretti"></div>
-                    
+                    Solo voli diretti
+                    <input type="radio" name="tipo_ricerca" value="solo_diretti">
                 </label>
             </div>
             <small style="color: #666; display: block; margin-top: 5px;">
@@ -66,8 +65,8 @@
         <div class="dashboard-grid">
             {% for destinazione in destinazioni_popolari %}
             <div class="dashboard-card">
-                <h4>{{ destinazione.citta }} ({{ destinazione.codice }})</h4>
-                <p>{{ destinazione.paese }}</p>
+                <p>{{ destinazione.citta }} ({{ destinazione.codice }})</p>
+                <p><strong>{{ destinazione.paese }}</strong></p>
                 <p class="text-primary">
                     <strong>{{ destinazione.num_prenotazioni }}</strong> prenotazioni negli ultimi 30 giorni!
                 </p>
@@ -96,83 +95,6 @@
 
 {% block scripts %}
 <script>
-// Imposta la data di oggi come default
-document.addEventListener('DOMContentLoaded', function() {
-    const today = new Date().toISOString().split('T')[0];
-    const dataPartenza = document.getElementById('dataPartenza');
-    
-    dataPartenza.value = today;
-    dataPartenza.min = today;
-});
-
-// Funzione per filtrare le destinazioni basate sull'aeroporto di partenza
-function updateDestinations() {
-    const origineSelect = document.querySelector('select[name="origine"]');
-    const destinazioneSelect = document.querySelector('select[name="destinazione"]');
-    const origineValue = origineSelect.value;
-    
-    // Reset del select destinazione
-    destinazioneSelect.innerHTML = '<option value="">Seleziona aeroporto...</option>';
-    destinazioneSelect.disabled = !origineValue;
-    
-    if (!origineValue) {
-        return;
-    }
-    
-    // Mostra loading
-    destinazioneSelect.innerHTML = '<option value="">Caricamento...</option>';
-    
-    // Chiamata AJAX per ottenere le destinazioni disponibili
-    fetch(`/api/destinations/${origineValue}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Reset e popolamento
-                destinazioneSelect.innerHTML = '<option value="">Seleziona destinazione...</option>';
-                
-                if (data.destinations.length === 0) {
-                    destinazioneSelect.innerHTML = '<option value="">Nessuna destinazione disponibile</option>';
-                    destinazioneSelect.disabled = true;
-                    return;
-                }
-                
-                // Aggiungi le destinazioni disponibili
-                data.destinations.forEach(dest => {
-                    const option = document.createElement('option');
-                    option.value = dest.codice;
-                    option.textContent = dest.display;
-                    destinazioneSelect.appendChild(option);
-                });
-                
-                destinazioneSelect.disabled = false;
-                
-                // Messaggio di conferma
-                console.log(`Trovate ${data.destinations.length} destinazioni da ${origineValue}`);
-                
-            } else {
-                console.error('Errore nel caricamento destinazioni:', data.error);
-                destinazioneSelect.innerHTML = '<option value="">Errore nel caricamento</option>';
-                destinazioneSelect.disabled = true;
-            }
-        })
-        .catch(error => {
-            console.error('Errore di rete:', error);
-            destinazioneSelect.innerHTML = '<option value="">Errore di connessione</option>';
-            destinazioneSelect.disabled = true;
-        });
-}
-
-// Aggiungi listener per il cambio di aeroporto di partenza
-document.addEventListener('DOMContentLoaded', function() {
-    const origineSelect = document.querySelector('select[name="origine"]');
-    
-    // Inizialmente disabilita il select destinazione
-    document.querySelector('select[name="destinazione"]').disabled = true;
-    
-    // Aggiungi event listener per il cambio di origine
-    origineSelect.addEventListener('change', updateDestinations);
-});
-
 // Funzione per validare la selezione (non può selezionare stesso aeroporto)
 function validateAirports() {
     const origine = document.querySelector('select[name="origine"]').value;

@@ -24,12 +24,12 @@
                 {% if current_user.tipo == 'compagnia' %}
                     <li><a href="{{ url_for('dashboard_compagnia') }}">Dashboard</a></li>
                 {% else %}
-                    <li><a href="{{ url_for('dashboard_passeggero') }}">Prenotazioni</a></li>
+                    <li><a href="{{ url_for('dashboard_passeggero') }}">Dashboard</a></li>
                 {% endif %}
-                <li><a href="{{ url_for('logout') }}">Esci ({{ current_user.username }})</a></li>
+                <li><a href="{{ url_for('logout') }}">Logout ({{ current_user.username }})</a></li>
             {% else %}
-                <li><a href="{{ url_for('login') }}">Accedi</a></li>
-                <li><a href="{{ url_for('register') }}">Registrati</a></li>
+                <li><a href="{{ url_for('login') }}">Login</a></li>
+                <li><a href="{{ url_for('register') }}">Register</a></li>
             {% endif %}
         </ul>
     </div>

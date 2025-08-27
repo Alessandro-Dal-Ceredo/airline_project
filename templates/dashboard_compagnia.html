@@ -183,7 +183,7 @@
                             </p>
                             <p><small>{{ tratta.voli|length }} voli programmati</small></p>
                             <div>
-                                <button class="btn btn-primary">Vedi Voli</button>
+                                <a href="{{ url_for('gestione_voli', tratta=tratta.id) }}" class="btn btn-primary">Vedi Voli</a>
                                 <form method="POST" action="{{ url_for('elimina_tratta', tratta_id=tratta.id) }}" style="display: inline;" onsubmit="return confirm('Sei sicuro di voler eliminare questa tratta?')">
                                     <button type="submit" class="btn btn-danger">Elimina</button>
                                 </form>
