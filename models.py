@@ -9,7 +9,7 @@ from sqlalchemy.orm import relationship
 
 db = SQLAlchemy()
 
-# Definizione degli enum PostgreSQL
+# Definisco gli enum PostgreSQL
 class TipoUtente(Enum):
     COMPAGNIA = "compagnia"
     PASSEGGERO = "passeggero"
@@ -23,14 +23,15 @@ class StatoPrenotazione(Enum):
     CONFERMATA = "confermata"
     CANCELLATA = "cancellata"
 
-# Enum PostgreSQL types - usa valori direttamente per compatibilità
 tipo_utente_enum = ENUM('compagnia', 'passeggero', name='tipo_utente', create_type=False)
 classe_volo_enum = ENUM('economy', 'business', 'first', name='classe_volo', create_type=False)
 stato_prenotazione_enum = ENUM('confermata', 'cancellata', name='stato_prenotazione', create_type=False)
 
+"""
+Tabella degli utenti
+"""
 
 class Utente(UserMixin, db.Model):
-    """Tabella principale degli utenti (sia compagnie che passeggeri)"""
     __tablename__ = 'utente'
     
     id = Column(Integer, primary_key=True)
@@ -39,23 +40,23 @@ class Utente(UserMixin, db.Model):
     email = Column(String(100), unique=True, nullable=False)
     tipo = Column(tipo_utente_enum, nullable=False)
     createdat = Column(DateTime, nullable=False, default=datetime.utcnow)
-    
-    # Relationship polimorfiche
+
     compagnia = relationship("CompagniaAerea", back_populates="utente", uselist=False)
     passeggero = relationship("Passeggero", back_populates="utente", uselist=False)
     
     def __repr__(self):
         return f'<Utente {self.username}>'
 
+"""
+Estensione degli utenti di tipo compagnia
+"""
 
 class CompagniaAerea(db.Model):
-    """Estensione per utenti di tipo compagnia"""
     __tablename__ = 'compagnia_aerea'
     
     id = Column(Integer, ForeignKey('utente.id', ondelete='CASCADE'), primary_key=True)
     nome_compagnia = Column(String(100), unique=True, nullable=False)
-    
-    # Relationships
+
     utente = relationship("Utente", back_populates="compagnia")
     tratte = relationship("Tratta", back_populates="compagnia")
     aerei = relationship("Aereo", back_populates="compagnia")
@@ -63,16 +64,17 @@ class CompagniaAerea(db.Model):
     def __repr__(self):
         return f'<CompagniaAerea {self.nome_compagnia}>'
 
+"""
+Estensione degli utenti di tipo passeggero
+"""
 
 class Passeggero(db.Model):
-    """Estensione per utenti di tipo passeggero"""
     __tablename__ = 'passeggero'
     
     id = Column(Integer, ForeignKey('utente.id', ondelete='CASCADE'), primary_key=True)
     nome = Column(String(50), nullable=False)
     cognome = Column(String(50), nullable=False)
-    
-    # Relationships
+
     utente = relationship("Utente", back_populates="passeggero")
     prenotazioni = relationship("Prenotazione", back_populates="passeggero")
     
@@ -83,25 +85,28 @@ class Passeggero(db.Model):
     def __repr__(self):
         return f'<Passeggero {self.nome} {self.cognome}>'
 
+"""
+Tabella degli aereoporti
+"""
 
 class Aeroporto(db.Model):
-    """Aeroporti con codice IATA"""
     __tablename__ = 'aeroporto'
     
-    codice = Column(String(3), primary_key=True)  # Es: FCO, MXP, LHR
+    codice = Column(String(3), primary_key=True)
     citta = Column(String(100), nullable=False)
     paese = Column(String(100), nullable=False)
-    
-    # Relationships
+
     tratte_partenza = relationship("Tratta", foreign_keys="Tratta.aeroporto_partenza", back_populates="aeroporto_partenza_obj")
     tratte_arrivo = relationship("Tratta", foreign_keys="Tratta.aeroporto_arrivo", back_populates="aeroporto_arrivo_obj")
     
     def __repr__(self):
         return f'<Aeroporto {self.codice} - {self.citta}>'
 
+"""
+Tabella delle tratte
+"""
 
 class Tratta(db.Model):
-    """Tratte servite dalle compagnie"""
     __tablename__ = 'tratta'
     
     id = Column(Integer, primary_key=True)
@@ -109,12 +114,11 @@ class Tratta(db.Model):
     aeroporto_arrivo = Column(String(3), ForeignKey('aeroporto.codice', onupdate='CASCADE'), nullable=False)
     compagnia_id = Column(Integer, ForeignKey('compagnia_aerea.id', ondelete='RESTRICT'), nullable=False)
     
-    # Constraints
+    # Constraint
     __table_args__ = (
         CheckConstraint('aeroporto_partenza <> aeroporto_arrivo', name='check_different_airports'),
     )
-    
-    # Relationships
+
     compagnia = relationship("CompagniaAerea", back_populates="tratte")
     aeroporto_partenza_obj = relationship("Aeroporto", foreign_keys=[aeroporto_partenza], back_populates="tratte_partenza")
     aeroporto_arrivo_obj = relationship("Aeroporto", foreign_keys=[aeroporto_arrivo], back_populates="tratte_arrivo")
@@ -123,6 +127,9 @@ class Tratta(db.Model):
     def __repr__(self):
         return f'<Tratta {self.aeroporto_partenza}-{self.aeroporto_arrivo}>'
 
+"""
+Tabella degli aerei
+"""
 
 class Aereo(db.Model):
     """Flotta delle compagnie"""
@@ -144,17 +151,18 @@ class Aereo(db.Model):
         CheckConstraint('posti_first >= 0', name='check_first_non_neg'),
         CheckConstraint('posti_economy + posti_business + posti_first = posti_totali', name='check_sum_posti'),
     )
-    
-    # Relationships
+
     compagnia = relationship("CompagniaAerea", back_populates="aerei")
     voli = relationship("Volo", back_populates="aereo")
     
     def __repr__(self):
         return f'<Aereo {self.modello} ({self.posti_totali} posti)>'
 
+"""
+Tabella dei voli
+"""
 
 class Volo(db.Model):
-    """Voli schedulati"""
     __tablename__ = 'volo'
     
     id = Column(Integer, primary_key=True)
@@ -168,8 +176,7 @@ class Volo(db.Model):
     __table_args__ = (
         CheckConstraint('partenza < arrivo', name='check_orari_logici'),
     )
-    
-    # Relationships
+
     tratta = relationship("Tratta", back_populates="voli")
     aereo = relationship("Aereo", back_populates="voli")
     prezzi = relationship("PrezzoVolo", back_populates="volo", cascade="all, delete-orphan")
@@ -177,17 +184,16 @@ class Volo(db.Model):
     
     @property
     def durata(self):
-        """Calcola la durata del volo"""
+        # calcolo durata del volo
         return self.arrivo - self.partenza
     
     def get_prezzo_per_classe(self, classe):
-        """Ottiene il prezzo per una specifica classe"""
+        # ottengo il prezzo per una classe
         prezzo_obj = next((p for p in self.prezzi if p.classe == classe), None)
         return prezzo_obj.prezzo if prezzo_obj else None
     
     def get_posti_disponibili_per_classe(self, classe):
-        """Calcola i posti disponibili per una specifica classe"""
-        # Posti totali per questa classe nell'aereo
+        # ottengo i posti totali per classe
         if classe == 'economy':
             posti_totali_classe = self.aereo.posti_economy
         elif classe == 'business':
@@ -197,7 +203,7 @@ class Volo(db.Model):
         else:
             return 0
         
-        # Conta i biglietti già prenotati per questa classe in questo volo
+        # Conto i biglietti già prenotati per classe
         from sqlalchemy import func
         biglietti_occupati = db.session.query(func.count(Biglietto.id)).join(Prenotazione).filter(
             Biglietto.volo_id == self.id,
@@ -208,15 +214,18 @@ class Volo(db.Model):
         return max(0, posti_totali_classe - biglietti_occupati)
     
     def has_available_seats_for_class(self, classe):
-        """Verifica se ci sono posti disponibili per una classe"""
+        # verifico che ci siano posti disponibili per classe
         return self.get_posti_disponibili_per_classe(classe) > 0
     
     def __repr__(self):
         return f'<Volo {self.id} - {self.partenza.strftime("%d/%m %H:%M")}>'
 
 
+"""
+Tabella dei prezzi per ogni volo
+"""
+
 class PrezzoVolo(db.Model):
-    """Prezzi per classe di ogni volo"""
     __tablename__ = 'prezzo_volo'
     
     volo_id = Column(Integer, ForeignKey('volo.id', ondelete='CASCADE'), primary_key=True)
@@ -227,16 +236,17 @@ class PrezzoVolo(db.Model):
     __table_args__ = (
         CheckConstraint('prezzo >= 0', name='check_prezzo_non_negativo'),
     )
-    
-    # Relationships
+
     volo = relationship("Volo", back_populates="prezzi")
     
     def __repr__(self):
         return f'<PrezzoVolo {self.classe}: €{self.prezzo}>'
 
+"""
+Tabella degli extra
+"""
 
 class Extra(db.Model):
-    """Servizi extra acquistabili"""
     __tablename__ = 'extra'
     
     id = Column(Integer, primary_key=True)
@@ -247,16 +257,17 @@ class Extra(db.Model):
     __table_args__ = (
         CheckConstraint('prezzo >= 0', name='check_extra_prezzo_non_negativo'),
     )
-    
-    # Relationships
+
     biglietti = relationship("BigliettoExtra", back_populates="extra")
     
     def __repr__(self):
         return f'<Extra {self.nome} - €{self.prezzo}>'
 
+"""
+Tabella delle prenotazioni
+"""
 
 class Prenotazione(db.Model):
-    """Prenotazioni dei passeggeri"""
     __tablename__ = 'prenotazione'
     
     id = Column(Integer, primary_key=True)
@@ -269,17 +280,18 @@ class Prenotazione(db.Model):
     __table_args__ = (
         CheckConstraint('costo_totale >= 0', name='check_costo_non_negativo'),
     )
-    
-    # Relationships
+
     passeggero = relationship("Passeggero", back_populates="prenotazioni")
     biglietti = relationship("Biglietto", back_populates="prenotazione", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f'<Prenotazione {self.id} - €{self.costo_totale}>'
 
+"""
+Tabella dei biglietti
+"""
 
 class Biglietto(db.Model):
-    """Biglietti individuali"""
     __tablename__ = 'biglietto'
     
     id = Column(Integer, primary_key=True)
@@ -292,8 +304,7 @@ class Biglietto(db.Model):
     __table_args__ = (
         sa.UniqueConstraint('volo_id', 'posto', name='unique_posto_per_volo'),
     )
-    
-    # Relationships
+
     prenotazione = relationship("Prenotazione", back_populates="biglietti")
     volo = relationship("Volo", back_populates="biglietti")
     extra = relationship("BigliettoExtra", back_populates="biglietto", cascade="all, delete-orphan")
@@ -302,24 +313,27 @@ class Biglietto(db.Model):
         return f'<Biglietto {self.posto} - {self.classe}>'
 
 
-# Tabella di associazione per biglietti-extra
+"""
+Tabella di associazione degli extra ai biglietti
+"""
+
 class BigliettoExtra(db.Model):
-    """Associazione tra biglietti e servizi extra"""
     __tablename__ = 'bigliettoextra'
     
     biglietto_id = Column(Integer, ForeignKey('biglietto.id', ondelete='CASCADE'), primary_key=True)
     extra_id = Column(Integer, ForeignKey('extra.id', ondelete='RESTRICT'), primary_key=True)
-    
-    # Relationships
+
     biglietto = relationship("Biglietto", back_populates="extra")
     extra = relationship("Extra", back_populates="biglietti")
     
     def __repr__(self):
         return f'<BigliettoExtra {self.biglietto_id}-{self.extra_id}>'
 
+"""
+Classe helper per gestire i vaggi con scali
+"""
 
 class ViaggioCombinato:
-    """Classe helper per gestire viaggi con scali (non una tabella DB)"""
     
     def __init__(self, voli_segmenti, origine, destinazione, data_partenza):
         self.voli_segmenti = voli_segmenti  # Lista di voli che formano il viaggio
@@ -327,43 +341,45 @@ class ViaggioCombinato:
         self.destinazione = destinazione
         self.data_partenza = data_partenza
         self._validate_connection_times()
+
+    """
+    funzione che controlla che la destinazione e la partenza di un volo coincidano
+    e che ci siano almeno 2 ore di connessione tra un volo e il successivo
+    """
     
     def _validate_connection_times(self):
-        """Valida che ci siano almeno 2 ore tra i voli di connessione"""
+
         from datetime import timedelta
         
         for i in range(len(self.voli_segmenti) - 1):
             volo_corrente = self.voli_segmenti[i]
             volo_successivo = self.voli_segmenti[i + 1]
-            
-            # Verifica che l'aeroporto di arrivo del primo volo corrisponda
-            # all'aeroporto di partenza del secondo volo
+
             if volo_corrente.tratta.aeroporto_arrivo != volo_successivo.tratta.aeroporto_partenza:
                 raise ValueError(f"Connessione non valida: {volo_corrente.tratta.aeroporto_arrivo} != {volo_successivo.tratta.aeroporto_partenza}")
-            
-            # Verifica che ci siano almeno 2 ore di connessione
+
             tempo_connessione = volo_successivo.partenza - volo_corrente.arrivo
             if tempo_connessione < timedelta(hours=2):
                 raise ValueError(f"Tempo di connessione insufficiente: {tempo_connessione} < 2 ore")
     
     @property
     def partenza_totale(self):
-        """Orario di partenza del primo volo"""
+        # orario di partenza del primo volo
         return self.voli_segmenti[0].partenza
     
     @property
     def arrivo_totale(self):
-        """Orario di arrivo dell'ultimo volo"""
+        # orario di arrivo dell'ultimo volo
         return self.voli_segmenti[-1].arrivo
     
     @property
     def durata_totale(self):
-        """Durata totale del viaggio"""
+        # durata totale del viaggio
         return self.arrivo_totale - self.partenza_totale
     
     @property
     def aeroporti_scalo(self):
-        """Lista degli aeroporti di scalo (esclusi origine e destinazione)"""
+        # lista degli aereoporti di scalo
         scali = []
         for i in range(len(self.voli_segmenti) - 1):
             scali.append(self.voli_segmenti[i].tratta.aeroporto_arrivo)
@@ -371,16 +387,16 @@ class ViaggioCombinato:
     
     @property
     def numero_scali(self):
-        """Numero di scali nel viaggio"""
+        # numero di scali di un viaggio
         return len(self.voli_segmenti) - 1
     
     @property
     def is_diretto(self):
-        """True se è un volo diretto (nessun scalo)"""
+        # ritorna true se il viaggio non ha scali
         return len(self.voli_segmenti) == 1
     
     def get_prezzo_minimo_per_classe(self, classe):
-        """Calcola il prezzo totale per una classe sommando tutti i segmenti"""
+        # calcolo il prezzo totale per un viaggio con una classe
         prezzo_totale = 0
         for volo in self.voli_segmenti:
             prezzo_segmento = volo.get_prezzo_per_classe(classe)
@@ -390,7 +406,7 @@ class ViaggioCombinato:
         return prezzo_totale
     
     def get_posti_disponibili_per_classe(self, classe):
-        """Calcola i posti disponibili per una classe (minimo tra tutti i segmenti)"""
+        # calcolo i posti minimi per una classe (prendo il minimo tra i voli)
         posti_minimi = float('inf')
         for volo in self.voli_segmenti:
             posti_segmento = volo.get_posti_disponibili_per_classe(classe)
@@ -398,18 +414,18 @@ class ViaggioCombinato:
         return int(posti_minimi) if posti_minimi != float('inf') else 0
     
     def has_available_seats_for_class(self, classe):
-        """Verifica se ci sono posti disponibili per una classe su tutti i segmenti"""
+        # controllo che ci siano posri disponibili per una classe su tutti i segmenti
         return self.get_posti_disponibili_per_classe(classe) > 0
     
     def get_compagnie(self):
-        """Lista delle compagnie coinvolte nel viaggio"""
+        # lista delle compagnie che hanno i voli nel viaggio
         compagnie = set()
         for volo in self.voli_segmenti:
             compagnie.add(volo.tratta.compagnia.nome_compagnia)
         return list(compagnie)
     
     def get_tempi_connessione(self):
-        """Lista dei tempi di connessione tra i voli"""
+        # lista dei tempi di connessione tra i voli
         tempi = []
         for i in range(len(self.voli_segmenti) - 1):
             volo_corrente = self.voli_segmenti[i]
@@ -423,7 +439,7 @@ class ViaggioCombinato:
         return f'<ViaggioCombinato {scali_str} ({self.numero_scali} scali)>'
     
     def to_dict(self):
-        """Converte il viaggio in un dizionario per il template"""
+        # converte il viaggio in un dizionario
         return {
             'voli_segmenti': self.voli_segmenti,
             'origine': self.origine,
