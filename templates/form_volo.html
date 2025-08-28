@@ -8,34 +8,31 @@
         <div class="card">
             <div class="card-header">
                 <h4 class="mb-0">
-                    <i class="fas fa-plane"></i>
                     Aggiungi Nuovo Volo
                 </h4>
             </div>
             <div class="card-body">
                 {% if not tratte %}
                 <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
                     <strong>Nessuna tratta disponibile!</strong>
                     <p class="mb-0">Devi prima creare almeno una tratta prima di poter aggiungere voli.</p>
                     <a href="{{ url_for('nuova_tratta') }}" class="btn btn-warning btn-sm mt-2">
-                        <i class="fas fa-plus"></i> Crea Nuova Tratta
+                        Crea Nuova Tratta
                     </a>
                 </div>
                 {% elif not aerei %}
                 <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
                     <strong>Nessun aereo disponibile!</strong>
                     <p class="mb-0">Devi prima aggiungere almeno un aereo alla flotta prima di poter creare voli.</p>
                     <a href="{{ url_for('nuovo_aereo') }}" class="btn btn-warning btn-sm mt-2">
-                        <i class="fas fa-plus"></i> Aggiungi Aereo
+                        Aggiungi Aereo
                     </a>
                 </div>
                 {% else %}
                 <form method="POST">
                     <!-- Selezione Tratta -->
                     <div class="mb-4">
-                        <h5><i class="fas fa-route"></i> Tratta</h5>
+                        <h5>Tratta</h5>
                         <div class="mb-3">
                             <label for="tratta_id" class="form-label">Seleziona Tratta *</label>
                             <select class="form-select" id="tratta_id" name="tratta_id" required>
@@ -52,7 +49,7 @@
 
                     <!-- Selezione Aereo -->
                     <div class="mb-4">
-                        <h5><i class="fas fa-plane"></i> Aereo</h5>
+                        <h5>Aereo</h5>
                         <div class="mb-3">
                             <label for="aereo_id" class="form-label">Seleziona Aereo *</label>
                             <select class="form-select" id="aereo_id" name="aereo_id" required>
@@ -72,7 +69,7 @@
 
                     <!-- Date e Orari -->
                     <div class="mb-4">
-                        <h5><i class="fas fa-clock"></i> Orari del Volo</h5>
+                        <h5>Orari del Volo</h5>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="data_partenza" class="form-label">Data Partenza *</label>
@@ -116,11 +113,11 @@
 
                     <!-- Prezzi -->
                     <div class="mb-4">
-                        <h5><i class="fas fa-euro-sign"></i> Prezzi per Classe</h5>
+                        <h5>Prezzi per Classe</h5>
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label for="prezzo_economy" class="form-label">
-                                    <i class="fas fa-chair text-primary"></i> Economy (€) *
+                                    Economy (€) *
                                 </label>
                                 <input type="number" 
                                        class="form-control" 
@@ -130,7 +127,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label for="prezzo_business" class="form-label">
-                                    <i class="fas fa-chair text-warning"></i> Business (€)
+                                    Business (€)
                                 </label>
                                 <input type="number" 
                                        class="form-control" 
@@ -140,7 +137,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label for="prezzo_first" class="form-label">
-                                    <i class="fas fa-chair text-success"></i> First Class (€)
+                                    First Class (€)
                                 </label>
                                 <input type="number" 
                                        class="form-control" 
@@ -154,7 +151,7 @@
                     <!-- Anteprima Volo -->
                     <div class="card mb-4" id="preview-volo" style="display: none;">
                         <div class="card-header bg-light">
-                            <h6 class="mb-0"><i class="fas fa-eye"></i> Anteprima Volo</h6>
+                            <h6 class="mb-0">Anteprima Volo</h6>
                         </div>
                         <div class="card-body">
                             <div class="row text-center">
@@ -163,7 +160,6 @@
                                     <div class="text-muted" id="preview-data-partenza"></div>
                                 </div>
                                 <div class="col-md-4">
-                                    <i class="fas fa-plane fa-2x text-muted"></i>
                                     <div class="mt-2">
                                         <small class="text-muted" id="preview-aereo"></small><br>
                                         <small class="text-muted" id="preview-durata"></small>
@@ -181,11 +177,11 @@
                     
                     <div class="d-flex justify-content-between">
                         <a href="{{ url_for('dashboard_compagnia') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Torna alla Dashboard
+                            Torna alla Dashboard
                         </a>
                         
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Crea Volo
+                            Crea Volo
                         </button>
                     </div>
                 </form>

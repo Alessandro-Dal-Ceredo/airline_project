@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Errore del server - BD Airline{% endblock %}
+
+{% block content %}
+<div class="container text-center" style="padding: 80px 20px;">
+    <div style="font-size: 5rem; color: #dc3545; margin-bottom: 30px;">⚠️</div>
+    
+    <h1 style="font-size: 4rem; color: #dc3545; margin-bottom: 20px;">500</h1>
+    
+    <h2 style="color: #6c757d; margin-bottom: 30px;">Errore interno del server</h2>
+    
+    <p style="font-size: 1.2rem; color: #495057; margin-bottom: 40px;">
+        Si è verificato un errore interno. Il nostro team tecnico è stato notificato e sta lavorando per risolvere il problema.
+    </p>
+    
+    <div>
+        <a href="{{ url_for('home') }}" class="btn btn-primary" style="margin: 10px;">
+            Torna alla Home
+        </a>
+        
+        <button onclick="window.location.reload()" class="btn btn-secondary" style="margin: 10px;">
+            Riprova
+        </button>
+    </div>
+    
+    <div style="margin-top: 40px;">
+        <small class="text-muted">
+            Se il problema persiste, contatta il supporto tecnico.
+        </small>
+    </div>
+</div>
+{% endblock %}

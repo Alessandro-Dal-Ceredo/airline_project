@@ -4,27 +4,26 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 from config import config
 from models import *
+from datetime import datetime, timedelta
 
+"""Funzione hepler per la creazione e configurazione dell'applicazione flask"""
 def create_app(config_name=None, config_overrides=None):
-    """Factory function per creare l'app Flask
-    config_overrides: dict opzionale per sovrascrivere configurazioni (utile nei test)
-    """
+
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'default')
     
     app = Flask(__name__)
     app.config.from_object(config[config_name])
-    
-    # Applica eventuali override prima di inizializzare le estensioni
+
     if config_overrides:
         app.config.update(config_overrides)
-    
-    # Inizializza le estensioni
+
     db.init_app(app)
     
-    # Configura Flask-Login
+    """Configuro Flask-Login"""
     login_manager = LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = 'login'
@@ -37,21 +36,19 @@ def create_app(config_name=None, config_overrides=None):
     
     return app
 
-# Crea l'applicazione
+"""Creo l'applicazione"""
 app = create_app()
 
-# ==========================================
-# ROUTES PRINCIPALI
-# ==========================================
+
+"""
+Home: pagina che permette di cercare i voli da anonimo o da loggati
+mostra le destinazioni piu' popolari:
+conto tutti i biglitti che hanno la stessa destinazione d'arrivo, la prenotazione e' confermata e mostro le informazioni
+"""
 
 @app.route('/')
 def home():
-    """Homepage con ricerca voli (accessibile a tutti)"""
     aeroporti = Aeroporto.query.order_by(Aeroporto.citta).all()
-    
-    # Query per trovare le destinazioni più popolari (top 3)
-    from models import Biglietto, Prenotazione, Volo
-    from sqlalchemy import func
     
     destinazioni_popolari = db.session.query(
         Tratta.aeroporto_arrivo,
@@ -69,8 +66,7 @@ def home():
     ).order_by(
         func.count(Biglietto.id).desc()
     ).limit(3).all()
-    
-    # Ottieni i dettagli degli aeroporti per le destinazioni popolari
+
     destinazioni_con_dettagli = []
     for dest_code, num_prenotazioni in destinazioni_popolari:
         aeroporto = Aeroporto.query.filter_by(codice=dest_code).first()
@@ -86,9 +82,17 @@ def home():
                          aeroporti=aeroporti,
                          destinazioni_popolari=destinazioni_con_dettagli)
 
+
+"""
+Search_results: pagina che mostra i risultati della ricerca fatti dalla homepage
+la ricerca dei voli chiede areoporto di partenza, arrivo, data, tipo di ricerca (con scali o no)
+sort_flights(): le ricerche potranno essere ordinate per prezzo, orario di partenza e durata del volo
+sort_combined_trips(): stessa cosa ma controlla i voli che hanno uno scalo
+"""
+
 @app.route('/search')
 def search_flights():
-    """Ricerca voli - accessibile a tutti (solo andata)"""
+
     origine = request.args.get('origine', '')
     destinazione = request.args.get('destinazione', '')
     data_partenza = request.args.get('data_partenza', '')
@@ -129,19 +133,18 @@ def search_flights():
 
 
 def sort_flights(voli, sort_by, sort_order):
-    """Ordina una lista di voli in base al criterio specificato"""
     if not voli:
         return voli
     
     reverse = (sort_order == 'desc')
     
     if sort_by == 'prezzo':
-        # Ordina per prezzo minimo tra tutte le classi
+        # Funzione che mi restituisce il prezzo piu' basso tra le classi di un volo
         def get_min_price(volo):
             if not volo.prezzi:
                 return float('inf')  # Metti alla fine i voli senza prezzi
             return min(prezzo.prezzo for prezzo in volo.prezzi)
-        
+        # restituisco la lista dei voli ordinati per prezzo
         return sorted(voli, key=get_min_price, reverse=reverse)
     
     elif sort_by == 'durata':
@@ -151,27 +154,26 @@ def sort_flights(voli, sort_by, sort_order):
         
         return sorted(voli, key=get_durata, reverse=reverse)
     
-    else:  # sort_by == 'orario' (default)
-        # Ordina per orario di partenza
+    else:
+        # Default: ordina per orario di partenza
         return sorted(voli, key=lambda v: v.partenza, reverse=reverse)
 
 
 def sort_combined_trips(viaggi, sort_by, sort_order):
-    """Ordina una lista di viaggi combinati in base al criterio specificato"""
     if not viaggi:
         return viaggi
     
     reverse = (sort_order == 'desc')
     
     if sort_by == 'prezzo':
-        # Ordina per somma dei prezzi minimi di tutti i segmenti
+        # Ordina per somma dei prezzi minimi di tutti i viaggi
         def get_total_min_price(viaggio):
             total = 0
             for volo in viaggio.voli_segmenti:
                 if volo.prezzi:
                     total += min(prezzo.prezzo for prezzo in volo.prezzi)
                 else:
-                    return float('inf')  # Viaggi senza prezzi alla fine
+                    return float('inf')  # Metti alla fine i voli senza prezzi
             return total
         
         return sorted(viaggi, key=get_total_min_price, reverse=reverse)
@@ -183,51 +185,47 @@ def sort_combined_trips(viaggi, sort_by, sort_order):
         
         return sorted(viaggi, key=get_durata_totale, reverse=reverse)
     
-    else:  # sort_by == 'orario' (default)
-        # Ordina per orario di partenza del primo segmento
+    else:
+        # Default: ordina per orario di partenza del primo segmento
         return sorted(viaggi, key=lambda v: v.partenza_totale, reverse=reverse)
 
 
 def search_direct_flights(origine, destinazione, data_partenza):
-    """Cerca voli diretti per la tratta specificata"""
     voli_query = db.session.query(Volo).join(Tratta).filter(
         Tratta.aeroporto_partenza == origine.upper(),
         Tratta.aeroporto_arrivo == destinazione.upper(),
         db.func.date(Volo.partenza) == db.func.cast(data_partenza, db.Date),
-        Volo.posti_disponibili > 0
+        Volo.posti_disponibili > 0,
+        Volo.partenza > datetime.now()
     ).order_by(Volo.partenza)
     
     return voli_query.all()
 
 
 def search_flights_with_stopovers(origine, destinazione, data_partenza):
-    """Cerca voli con scali e diretti per la tratta specificata"""
-    from models import ViaggioCombinato
-    from datetime import datetime, timedelta
-    
-    # 1. Prima trova i voli diretti
+    # Prima trovo i voli diretti
     voli_diretti = search_direct_flights(origine, destinazione, data_partenza)
     
-    # 2. Poi cerca viaggi con 1 scalo
+    # Poi cerca viaggi con 1 scalo
     viaggi_con_scali = []
     
     # Trova tutti i voli che partono dall'origine nella data specificata
     voli_primo_segmento = db.session.query(Volo).join(Tratta).filter(
         Tratta.aeroporto_partenza == origine.upper(),
         db.func.date(Volo.partenza) == db.func.cast(data_partenza, db.Date),
-        Volo.posti_disponibili > 0
+        Volo.posti_disponibili > 0,
+        Volo.partenza > datetime.now()
     ).all()
     
     for volo_primo in voli_primo_segmento:
         # Aeroporto di scalo è la destinazione del primo volo
         aeroporto_scalo = volo_primo.tratta.aeroporto_arrivo
         
-        # Non considerare se il primo volo va già alla destinazione finale
+        # Non considerare se il primo volo va già alla destinazione finale perche gia all'interno di voli diretti
         if aeroporto_scalo == destinazione.upper():
             continue
             
-        # Trova voli che partono dall'aeroporto di scalo verso la destinazione finale
-        # con almeno 2 ore di connessione
+        # Trovo voli che partono dall'aeroporto di scalo verso la destinazione finale con almeno 2 ore di connessione
         orario_minimo_connessione = volo_primo.arrivo + timedelta(hours=2)
         orario_massimo_connessione = volo_primo.arrivo + timedelta(hours=12)  # Max 12h di attesa
         
@@ -239,7 +237,7 @@ def search_flights_with_stopovers(origine, destinazione, data_partenza):
             Volo.posti_disponibili > 0
         ).order_by(Volo.partenza).limit(3).all()  # Limita a 3 opzioni per scalo
         
-        # Crea viaggi combinati validi
+        # Creo viaggi combinati validi
         for volo_secondo in voli_secondo_segmento:
             try:
                 viaggio_combinato = ViaggioCombinato(
@@ -251,61 +249,26 @@ def search_flights_with_stopovers(origine, destinazione, data_partenza):
                 viaggi_con_scali.append(viaggio_combinato)
             except ValueError as e:
                 # Connessione non valida, salta
-                print(f"DEBUG: Connessione non valida: {e}")
                 continue
     
-    # Ordina i viaggi con scali per orario di partenza
+    # Ordino i viaggi con scali per orario di partenza (default)
     viaggi_con_scali.sort(key=lambda v: v.partenza_totale)
     
-    # Limita il numero di risultati per evitare sovraccarico
+    # Limito il numero di risultati per evitare sovraccarico
     viaggi_con_scali = viaggi_con_scali[:10]
     
     return voli_diretti, viaggi_con_scali
 
-@app.route('/api/destinations/<origin_code>')
-def get_destinations(origin_code):
-    """API per ottenere destinazioni disponibili da un aeroporto di partenza"""
-    try:
-        # Query per trovare tutti gli aeroporti di destinazione che hanno tratte dall'aeroporto di origine
-        destinazioni = db.session.query(Aeroporto).join(
-            Tratta, Aeroporto.codice == Tratta.aeroporto_arrivo
-        ).filter(
-            Tratta.aeroporto_partenza == origin_code.upper()
-        ).distinct().order_by(Aeroporto.citta).all()
-        
-        # Converti in formato JSON
-        destinazioni_json = []
-        for aeroporto in destinazioni:
-            destinazioni_json.append({
-                'codice': aeroporto.codice,
-                'citta': aeroporto.citta,
-                'paese': aeroporto.paese,
-                'display': f"{aeroporto.codice} - {aeroporto.citta}, {aeroporto.paese}"
-            })
-        
-        return jsonify({
-            'success': True,
-            'destinations': destinazioni_json
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/about')
-def about():
-    """Pagina informazioni"""
-    return render_template('about.html')
-
-# ==========================================
-# ROUTES AUTENTICAZIONE
-# ==========================================
+"""
+login: pagina da cui effettuare il login
+richiede username e password come input
+uso la libreria werkzeug.security con check_password_hash per controllare che l'hash della password inserita sia uguale all'hash nel database
+se l'utente e' una compagnia, viene reindirizzato alla dashboard della compagnia
+se l'utente e' un passeggero, viene reindirizzato alla dashboard del passeggero
+"""
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login per utenti esistenti"""
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -330,16 +293,24 @@ def login():
     
     return render_template('login.html')
 
+"""
+register: pagina da cui registrarsi al sito
+richiede username, email password e il tipo di utente
+tenta la registrazione dell'utente, se dovesse fallire fa il rollback del database e da una notifica di errore
+se dovesse andare a buon fine la registrazione, l'utente viene reindirizzato alla pagina del login
+l'hash della password lo facciamo tramite generate_password_hash della libreria werkzeug.security
+"""
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """Registrazione nuovi utenti"""
+
     if request.method == 'POST':
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
         tipo = request.form.get('tipo')
         
-        # Validazione base
+        # Validazioni
         if not all([username, email, password, tipo]):
             flash('Tutti i campi sono richiesti.', 'error')
             return render_template('register.html')
@@ -348,7 +319,7 @@ def register():
             flash('Tipo utente non valido.', 'error')
             return render_template('register.html')
         
-        # Controlla se utente già esistente
+        # Controllo se l'utente esiste gia
         if Utente.query.filter_by(username=username).first():
             flash('Username già esistente.', 'error')
             return render_template('register.html')
@@ -358,17 +329,17 @@ def register():
             return render_template('register.html')
         
         try:
-            # Crea nuovo utente
+            # Creo nuovo utente
             nuovo_utente = Utente(
                 username=username,
                 email=email,
                 password=generate_password_hash(password),
-                tipo=tipo  # Passiamo direttamente la stringa
+                tipo=tipo
             )
             db.session.add(nuovo_utente)
-            db.session.flush()  # Per ottenere l'ID
+            db.session.flush()
             
-            # Crea record specifico in base al tipo
+            # Creo record in base al tipo
             if tipo == 'compagnia':
                 nome_compagnia = request.form.get('nome_compagnia')
                 if not nome_compagnia:
@@ -381,7 +352,7 @@ def register():
                 )
                 db.session.add(compagnia)
                 
-            else:  # passeggero
+            else:
                 nome = request.form.get('nome')
                 cognome = request.form.get('cognome')
                 if not all([nome, cognome]):
@@ -405,46 +376,25 @@ def register():
     
     return render_template('register.html')
 
+"""
+logout: effettua il logout
+"""
+
 @app.route('/logout')
 @login_required
 def logout():
-    """Logout utente"""
     logout_user()
     flash('Logout effettuato con successo.', 'info')
     return redirect(url_for('home'))
 
-# ==========================================
-# FUNZIONI HELPER
-# ==========================================
-
-def calcola_ricavi_totali_compagnia(compagnia_id):
-    """
-    Calcola i ricavi totali di una compagnia aerea
-    basandosi sulle prenotazioni confermate per i voli della compagnia
-    """
-    from models import Prenotazione, Biglietto, Volo, Tratta
-    from sqlalchemy import func
-    
-    # Somma i costi totali delle prenotazioni confermate
-    # per i voli che appartengono alle tratte della compagnia
-    ricavi = db.session.query(
-        func.sum(Prenotazione.costo_totale)
-    ).join(
-        Biglietto, Prenotazione.id == Biglietto.prenotazione_id
-    ).join(
-        Volo, Biglietto.volo_id == Volo.id
-    ).join(
-        Tratta, Volo.tratta_id == Tratta.id
-    ).filter(
-        Tratta.compagnia_id == compagnia_id,
-        Prenotazione.stato == 'confermata'
-    ).scalar()
-    
-    return float(ricavi) if ricavi else 0.0
-
-# ==========================================
-# DASHBOARD UTENTI
-# ==========================================
+"""
+dashboard_compagnia: pagina che permette all'utente compagnia di visualizzare:
+calcola_ricavi_totali_compagnia(compagnia_id): il proprio ricavo totale facendo la somma del costo totale delle prenotazioni effettuate nei voli apparteneni alla compagnia
+le tratte
+gli aerei (e le info sull'aereo)
+i voli (e le info sul volo)
+dalla dashboard si puo' andare alle pagnine di inserimento delle tratte, degli aerei e dei voli
+"""
 
 @app.route('/dashboard/compagnia')
 @login_required
@@ -483,31 +433,55 @@ def dashboard_compagnia():
                          voli_recenti=voli_recenti,
                          ricavi_totali=ricavi_totali)
 
+
+def calcola_ricavi_totali_compagnia(compagnia_id):
+
+    # Somma i costi totali delle prenotazioni confermate
+    # per i voli che appartengono alle tratte della compagnia
+    ricavi = db.session.query(
+        func.sum(Prenotazione.costo_totale)
+    ).join(
+        Biglietto, Prenotazione.id == Biglietto.prenotazione_id
+    ).join(
+        Volo, Biglietto.volo_id == Volo.id
+    ).join(
+        Tratta, Volo.tratta_id == Tratta.id
+    ).filter(
+        Tratta.compagnia_id == compagnia_id,
+        Prenotazione.stato == 'confermata'
+    ).scalar()
+
+    return float(ricavi) if ricavi else 0.0
+
+"""
+dashboard_passeggero: pagina che permette all'utente passeggero di visualizzare le prenotazione effetuate
+da questa pagina si possono cancellare le prenotazione (solo se il volo e' a piu' di 24 ore di distanza dalla cancellazione)
+e accedere alla pagina dei dettagli della prenotazione
+le prenotazioni si possono filtrare per cancellate e confermate
+"""
+
 @app.route('/dashboard/passeggero')
 @login_required
 def dashboard_passeggero():
-    """Dashboard per passeggeri con filtri per stato prenotazione"""
     if current_user.tipo != 'passeggero':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
     
     passeggero = current_user.passeggero
     
-    # Ottieni il filtro stato dalla query string
+    # Ottiengo il filtro dello stato delle prenotazioni
     filtro_stato = request.args.get('stato', 'tutte')
     
     # Query base per le prenotazioni del passeggero
-    from models import Prenotazione
     prenotazioni_query = Prenotazione.query.filter_by(passeggero_id=passeggero.id)
     
-    # Applica il filtro in base allo stato
+    # Applico il filtro
     if filtro_stato == 'confermate':
         prenotazioni_query = prenotazioni_query.filter_by(stato='confermata')
     elif filtro_stato == 'cancellate':
         prenotazioni_query = prenotazioni_query.filter_by(stato='cancellata')
-    # Se 'tutte', non applichiamo filtri aggiuntivi
-    
-    # Ordina per data di acquisto (più recenti prima)
+
+    # Ordina per data di acquisto
     prenotazioni = prenotazioni_query.order_by(Prenotazione.data_acquisto.desc()).all()
     
     return render_template('dashboard_passeggero.html',
@@ -515,23 +489,23 @@ def dashboard_passeggero():
                          prenotazioni=prenotazioni,
                          filtro_corrente=filtro_stato)
 
-# ==========================================
-# BOOKING/PRENOTAZIONI
-# ==========================================
-
+"""
+book_flight: pagina da cui prenotare il volo
+solo gli utenti passeggero possono accederci
+Verifica che il passeggero non abbia gia prenotato questo volo e che il volo esista e abbia posti
+generate_seat_map(): funzione che restituisce una mappa dei posti del volo, la crea in base all'aereo e i posti disponibili
+process_booking(): funzione principale per la prenotazione del volo
+se la prenotazione va a buon fine, porta l'utente alla dashboard passeggero
+"""
 
 @app.route('/book_flight/<int:volo_id>', methods=['GET', 'POST'])
 @login_required
 def book_flight(volo_id):
-    """Pagina di selezione classe, posto e extra per la prenotazione"""
     if current_user.tipo != 'passeggero':
         flash('Solo i passeggeri possono prenotare voli.', 'error')
         return redirect(url_for('home'))
-    
+    # Verifiche
     try:
-        from models import PrezzoVolo, Extra
-        
-        # Verifica che il volo esista e abbia posti
         volo = Volo.query.get(volo_id)
         if not volo:
             flash('Volo non trovato.', 'error')
@@ -541,8 +515,7 @@ def book_flight(volo_id):
             flash('Volo al completo.', 'error')
             return redirect(url_for('search_flights'))
         
-        # Controlla se il passeggero ha già prenotato questo volo
-        from models import Biglietto, Prenotazione
+        # Controllo se il passeggero ha già prenotato questo volo
         biglietto_esistente = db.session.query(Biglietto).join(Prenotazione).filter(
             Prenotazione.passeggero_id == current_user.id,
             Biglietto.volo_id == int(volo_id)
@@ -552,11 +525,11 @@ def book_flight(volo_id):
             flash('Hai già prenotato questo volo.', 'warning')
             return redirect(url_for('dashboard_passeggero'))
         
-        # Ottieni i prezzi per le diverse classi
+        # Ottiengo i prezzi
         prezzi = PrezzoVolo.query.filter_by(volo_id=volo_id).all()
         prezzi_dict = {prezzo.classe: prezzo.prezzo for prezzo in prezzi}
         
-        # Ottieni tutti gli extra disponibili
+        # Ottiengo gli extra disponibili
         extra_disponibili = Extra.query.all()
         
         # Genera mappa posti per questo volo
@@ -577,21 +550,18 @@ def book_flight(volo_id):
 
 
 def generate_seat_map(volo):
-    """Genera una mappa dei posti per lo specifico volo, includendo disponibilità e classe."""
-    from models import Biglietto, Prenotazione
 
     aereo = volo.aereo
     colonne = ['A', 'B', 'C', 'D', 'E', 'F']  # sedili per fila
     posti_per_fila = len(colonne)
 
-    # (classe, numero di posti)
     classi = [
         ('first', aereo.posti_first),
         ('business', aereo.posti_business),
         ('economy', aereo.posti_economy),
     ]
 
-    # Posti occupati (prenotazioni non cancellate)
+    # Posti occupati (senza le prenotazioni cancellate)
     occupati_rows = (
         db.session.query(Biglietto.posto)
         .join(Prenotazione)
@@ -604,8 +574,9 @@ def generate_seat_map(volo):
     posti_occupati = {row[0] for row in occupati_rows}
 
     mappa_posti = {}
-    fila = 1  # parti da 1, tipico in aereo
+    fila = 1
 
+    # inserisco dentro mappa_posti i posti dell'aereo
     for classe, num_posti in classi:
         if not num_posti or num_posti <= 0:
             continue
@@ -631,16 +602,16 @@ def generate_seat_map(volo):
 
 
 def process_booking(volo_id, volo, prezzi_dict, extra_disponibili):
-    """Processa la prenotazione con classe, posto e extra selezionati, con validazioni e gestione race condition."""
+    from datetime import datetime, timedelta
     try:
-        from models import Prenotazione, Biglietto, BigliettoExtra, Extra, Prenotazione as Pren
-        from datetime import datetime
-        
+
+        # richiedo classe, posto e lista degli extra selezionati
+
         classe = request.form.get('classe', 'economy')
         posto = request.form.get('posto', '')
-        extra_ids = request.form.getlist('extra')  # Lista degli ID extra selezionati
+        extra_ids = request.form.getlist('extra')  # Lista degli extra selezionati
         
-        # Verifica che la classe abbia un prezzo
+        # Verifico che la classe abbia un prezzo
         if classe not in prezzi_dict:
             flash('Classe selezionata non disponibile.', 'error')
             extra_disponibili = Extra.query.all()
@@ -650,7 +621,7 @@ def process_booking(volo_id, volo, prezzi_dict, extra_disponibili):
                                  extra_disponibili=extra_disponibili, 
                                  posti_aereo=generate_seat_map(volo))
         
-        # Calcola costo totale
+        # Calcolo costo totale
         costo_base = prezzi_dict[classe]
         costo_extra = 0
         
@@ -666,7 +637,7 @@ def process_booking(volo_id, volo, prezzi_dict, extra_disponibili):
         
         costo_totale = costo_base + costo_extra
         
-        # Helper per ottenere la lista dei posti disponibili per classe
+        # funzione helper per ottenere la lista dei posti disponibili per classe
         def available_seats_for_class(volo):
             seat_map = generate_seat_map(volo)
             disponibili = []
@@ -711,7 +682,7 @@ def process_booking(volo_id, volo, prezzi_dict, extra_disponibili):
                                      posti_aereo=generate_seat_map(volo))
             posto = random.choice(disponibili)
         
-        # Crea la prenotazione
+        # Creo la prenotazione
         nuova_prenotazione = Prenotazione(
             passeggero_id=current_user.id,
             data_acquisto=datetime.now(),
@@ -720,7 +691,7 @@ def process_booking(volo_id, volo, prezzi_dict, extra_disponibili):
         )
         
         db.session.add(nuova_prenotazione)
-        db.session.flush()  # Per ottenere l'ID della prenotazione
+        db.session.flush()
         
         # Prova a creare il biglietto; in caso di race condition ritenta (solo se posto non era scelto dall'utente)
         max_tentativi = 3 if request.form.get('posto', '') == '' else 1
@@ -760,7 +731,7 @@ def process_booking(volo_id, volo, prezzi_dict, extra_disponibili):
         if nuovo_biglietto is None:
             raise ultimo_errore or Exception('Impossibile creare il biglietto.')
         
-        # Aggiungi gli extra al biglietto
+        # Aggiungo gli extra al biglietto
         for extra in extra_selezionati:
             biglietto_extra = BigliettoExtra(
                 biglietto_id=nuovo_biglietto.id,
@@ -773,7 +744,7 @@ def process_booking(volo_id, volo, prezzi_dict, extra_disponibili):
         
         db.session.commit()
         
-        # Messaggio di conferma dettagliato
+        # Messaggio di conferma prenotazione
         extra_text = f" + {len(extra_selezionati)} extra" if extra_selezionati else ""
         flash(f'Prenotazione confermata! Volo {volo.tratta.aeroporto_partenza}→{volo.tratta.aeroporto_arrivo} del {volo.partenza.strftime("%d/%m/%Y")} alle {volo.partenza.strftime("%H:%M")}. Classe: {classe.title()}, Posto: {posto}{extra_text}. Totale: €{costo_totale:.0f}', 'success')
         return redirect(url_for('dashboard_passeggero'))
@@ -788,19 +759,20 @@ def process_booking(volo_id, volo, prezzi_dict, extra_disponibili):
                              extra_disponibili=extra_disponibili, 
                              posti_aereo=generate_seat_map(volo))
 
-
+"""
+dettagli_prenotazione: pagina dove si possono visualizzare i dettagli delle prenotazioni
+filtra le prenotazione con una query usando l'id dell'utente corrente
+"""
 
 @app.route('/passeggero/prenotazione/<int:prenotazione_id>')
 @login_required
 def dettagli_prenotazione(prenotazione_id):
-    """Visualizza dettagli completi di una prenotazione"""
+
     if current_user.tipo != 'passeggero':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
     
     try:
-        from models import Prenotazione
-        
         prenotazione = Prenotazione.query.filter_by(
             id=prenotazione_id,
             passeggero_id=current_user.id
@@ -816,17 +788,18 @@ def dettagli_prenotazione(prenotazione_id):
         flash(f'Errore durante il caricamento: {str(e)}', 'error')
         return redirect(url_for('dashboard_passeggero'))
 
+"""
+cancel_booking: cancella la prenotazione che abbia minimo 24 ore di distanza dalla partenza
+"""
+
 @app.route('/cancel_booking/<int:prenotazione_id>', methods=['POST'])
 @login_required
 def cancel_booking(prenotazione_id):
-    """Cancella una prenotazione"""
     if current_user.tipo != 'passeggero':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
     
     try:
-        from models import Prenotazione
-        
         prenotazione = Prenotazione.query.filter_by(
             id=prenotazione_id,
             passeggero_id=current_user.id
@@ -840,14 +813,13 @@ def cancel_booking(prenotazione_id):
             flash('Prenotazione già cancellata.', 'warning')
             return redirect(url_for('dashboard_passeggero'))
         
-        # Verifica se è possibile cancellare (es: almeno 24h prima del volo)
-        from datetime import datetime, timedelta
+        # Verifico se è possibile cancellare, devono esserci almeno 24h prima del volo)
         for biglietto in prenotazione.biglietti:
             if biglietto.volo.partenza <= datetime.now() + timedelta(hours=24):
                 flash('Non puoi cancellare prenotazioni a meno di 24 ore dal volo.', 'error')
                 return redirect(url_for('dashboard_passeggero'))
         
-        # Aggiorna stato e riaddiziona posti
+        # Aggiorno stato e riaddiziona posti
         prenotazione.stato = 'cancellata'
         for biglietto in prenotazione.biglietti:
             biglietto.volo.posti_disponibili += 1
@@ -862,25 +834,16 @@ def cancel_booking(prenotazione_id):
         flash(f'Errore durante la cancellazione: {str(e)}', 'error')
         return redirect(url_for('dashboard_passeggero'))
 
-# ==========================================
-# GESTIONE COMPAGNIA AEREA
-# ==========================================
-
-@app.route('/compagnia/aerei')
-@login_required
-def gestione_aerei():
-    """Visualizza lista aerei della compagnia"""
-    if current_user.tipo != 'compagnia':
-        flash('Accesso non autorizzato.', 'error')
-        return redirect(url_for('home'))
-    
-    compagnia = current_user.compagnia
-    return render_template('gestione_aerei.html', compagnia=compagnia)
+"""
+form_aereo: pagina da cui la copagnia puo' modificare o aggiungere un nuovo aereo alla propria flotta
+in questo caso aggiunge un nuovo aereo
+richiede un nome (modello dell'aereo), e la quantita' di posti nelle classi economy, buisness e first
+poi inserisco il nuovo aereo nel database
+"""
 
 @app.route('/compagnia/aerei/nuovo', methods=['GET', 'POST'])
 @login_required
 def nuovo_aereo():
-    """Aggiungi nuovo aereo alla flotta"""
     if current_user.tipo != 'compagnia':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
@@ -924,15 +887,21 @@ def nuovo_aereo():
     
     return render_template('form_aereo.html')
 
+"""
+form_aereo: pagina da cui la copagnia puo' modificare o aggiungere un nuovo aereo alla propria flotta
+in questo caso modifica un aereo gia esistente
+filtra l'aereo per l'id richiesto
+si possono cambiare nome, e il numero di posti nelle classi
+"""
+
 @app.route('/compagnia/aerei/<int:aereo_id>/modifica', methods=['GET', 'POST'])
 @login_required
 def modifica_aereo(aereo_id):
-    """Modifica aereo esistente"""
+
     if current_user.tipo != 'compagnia':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
-    
-    from models import Aereo
+
     aereo = Aereo.query.filter_by(id=aereo_id, compagnia_id=current_user.id).first()
     
     if not aereo:
@@ -956,10 +925,14 @@ def modifica_aereo(aereo_id):
     
     return render_template('form_aereo.html', aereo=aereo)
 
+"""
+elimina: elimina l'aereo selezionato dalla dashboard della compagnia
+se un aereo ha voli programmati, non puo' essere eliminato
+"""
+
 @app.route('/compagnia/aerei/<int:aereo_id>/elimina', methods=['POST'])
 @login_required
 def elimina_aereo(aereo_id):
-    """Elimina aereo dalla flotta"""
     if current_user.tipo != 'compagnia':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
@@ -972,7 +945,7 @@ def elimina_aereo(aereo_id):
             flash('Aereo non trovato.', 'error')
             return redirect(url_for('dashboard_compagnia'))
         
-        # Controlla se l'aereo ha voli attivi
+        # Controllo se l'aereo ha voli programmati
         if aereo.voli:
             flash('Impossibile eliminare l\'aereo: ha voli programmati.', 'error')
             return redirect(url_for('dashboard_compagnia'))
@@ -987,10 +960,18 @@ def elimina_aereo(aereo_id):
     
     return redirect(url_for('dashboard_compagnia'))
 
+
+"""
+form_tratta: pagina da cui la compagnia puo' creare una nuova tratta
+richiede un areoporto di partenza e uno di arrivo
+non puo' essere creata una tratta gia esistente per la compagnia e areoporto arrivo deve essere diverso da quello di destinazione
+poi inserisco la tratta nel database la nuova tratta
+"""
+
 @app.route('/compagnia/tratte/nuova', methods=['GET', 'POST'])
 @login_required
 def nuova_tratta():
-    """Aggiungi nuova tratta"""
+
     if current_user.tipo != 'compagnia':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
@@ -1009,7 +990,7 @@ def nuova_tratta():
             flash('Aeroporto di partenza e arrivo devono essere diversi.', 'error')
             return render_template('form_tratta.html', aeroporti=aeroporti)
         
-        # Controlla se la tratta esiste già
+        # Controllo se la tratta esiste già
         tratta_esistente = Tratta.query.filter_by(
             aeroporto_partenza=aeroporto_partenza.upper(),
             aeroporto_arrivo=aeroporto_arrivo.upper(),
@@ -1039,10 +1020,15 @@ def nuova_tratta():
     
     return render_template('form_tratta.html', aeroporti=aeroporti)
 
+"""
+elimina: elimina la tratta selezionata
+non puo' essere eliminata se ci sono dei voli programmati
+"""
+
 @app.route('/compagnia/tratte/<int:tratta_id>/elimina', methods=['POST'])
 @login_required
 def elimina_tratta(tratta_id):
-    """Elimina tratta"""
+
     if current_user.tipo != 'compagnia':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
@@ -1054,7 +1040,7 @@ def elimina_tratta(tratta_id):
             flash('Tratta non trovata.', 'error')
             return redirect(url_for('dashboard_compagnia'))
         
-        # Controlla se ci sono voli programmati
+        # Controllo se ci sono voli programmati
         if tratta.voli:
             flash('Impossibile eliminare la tratta: ha voli programmati.', 'error')
             return redirect(url_for('dashboard_compagnia'))
@@ -1069,29 +1055,35 @@ def elimina_tratta(tratta_id):
     
     return redirect(url_for('dashboard_compagnia'))
 
+"""
+gestione_voli: pagina da cui la compagnia puo' vedere tutti i suoi voli
+i voli si possono filtrare per tratta, modell di aereo, data di partenza e lo stato (tutti, passati, disponibili, pieni)
+si possono ordinare per data di partenza (crescente o decrescente), tratta, numero di posti disponibili
+da qua si possono anche eliminare voli che non hanno prenotazioni attive
+"""
+
 @app.route('/compagnia/voli')
 @login_required
 def gestione_voli():
-    """Visualizza e gestisce tutti i voli della compagnia con filtri"""
+    from datetime import datetime, timedelta
     if current_user.tipo != 'compagnia':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
     
     compagnia = current_user.compagnia
-    
-    # Query base per i voli della compagnia
+
     voli_query = db.session.query(Volo).join(Tratta).filter(
         Tratta.compagnia_id == compagnia.id
     )
     
-    # Parametri di filtro
+    # Parametri di filtraggio
     filtro_tratta = request.args.get('tratta', '')
     filtro_aereo = request.args.get('aereo', '')
     data_da = request.args.get('data_da', '')
     data_a = request.args.get('data_a', '')
     stato_volo = request.args.get('stato', '')
     
-    # Applicazione filtri
+    # Applico i filtri
     if filtro_tratta:
         voli_query = voli_query.filter(Volo.tratta_id == int(filtro_tratta))
     
@@ -1114,9 +1106,8 @@ def gestione_voli():
         except ValueError:
             flash('Formato data non valido per "A"', 'warning')
     
-    # Filtro per stato (basato sui posti disponibili e data)
-    from datetime import datetime
-    ora_corrente = datetime.now()
+    # Filtro per data e posti disponibili (lo stato del volo)
+    ora_corrente = datetime.now();
     
     if stato_volo == 'passati':
         voli_query = voli_query.filter(Volo.arrivo < ora_corrente)
@@ -1130,7 +1121,7 @@ def gestione_voli():
             Volo.partenza > ora_corrente
         )
     
-    # Ordinamento e paginazione
+    # Ordinamento
     ordinamento = request.args.get('ordina', 'partenza_desc')
     
     if ordinamento == 'partenza_asc':
@@ -1143,8 +1134,7 @@ def gestione_voli():
         voli_query = voli_query.order_by(Volo.posti_disponibili.desc())
     
     voli = voli_query.all()
-    
-    # Statistiche per i filtri correnti
+
     totale_voli = len(voli)
     voli_futuri = len([v for v in voli if v.partenza > ora_corrente])
     voli_pieni = len([v for v in voli if v.posti_disponibili == 0])
@@ -1163,10 +1153,16 @@ def gestione_voli():
                          voli_pieni=voli_pieni,
                          ora_corrente=ora_corrente)
 
+"""
+form_volo: pagina da cui aggiugere un nuovo volo
+richiede la tratta, un aereo, data e oraro di partenza, data e orario di arrivo, e il prezzo per i posti di ogni classe (economy, business e first)
+poi aggiungo il volo nel database insieme al prezzo
+"""
+
 @app.route('/compagnia/voli/nuovo', methods=['GET', 'POST'])
 @login_required
 def nuovo_volo():
-    """Aggiungi nuovo volo"""
+
     if current_user.tipo != 'compagnia':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
@@ -1185,7 +1181,6 @@ def nuovo_volo():
         prezzo_first = request.form.get('prezzo_first')
         
         try:
-            from datetime import datetime
             partenza_dt = datetime.strptime(f'{data_partenza} {ora_partenza}', '%Y-%m-%d %H:%M')
             arrivo_dt = datetime.strptime(f'{data_arrivo} {ora_arrivo}', '%Y-%m-%d %H:%M')
             
@@ -1193,13 +1188,13 @@ def nuovo_volo():
                 flash('La data di arrivo deve essere successiva alla partenza.', 'error')
                 return render_template('form_volo.html', tratte=compagnia.tratte, aerei=compagnia.aerei)
             
-            # Verifica che la tratta appartenga alla compagnia
+            # Verifico che la tratta appartenga alla compagnia
             tratta = Tratta.query.filter_by(id=tratta_id, compagnia_id=current_user.id).first()
             if not tratta:
                 flash('Tratta non valida.', 'error')
                 return render_template('form_volo.html', tratte=compagnia.tratte, aerei=compagnia.aerei)
             
-            # Verifica che l'aereo appartenga alla compagnia
+            # Verifico che l'aereo appartenga alla compagnia
             from models import Aereo
             aereo = Aereo.query.filter_by(id=aereo_id, compagnia_id=current_user.id).first()
             if not aereo:
@@ -1215,10 +1210,9 @@ def nuovo_volo():
             )
             
             db.session.add(nuovo_volo)
-            db.session.flush()  # Per ottenere l'ID
+            db.session.flush()
             
-            # Aggiungi prezzi
-            from models import PrezzoVolo
+            # Aggiungo i prezzi
             if prezzo_economy:
                 prezzo_eco = PrezzoVolo(volo_id=nuovo_volo.id, classe='economy', prezzo=float(prezzo_economy))
                 db.session.add(prezzo_eco)
@@ -1232,7 +1226,7 @@ def nuovo_volo():
                 db.session.add(prezzo_fir)
             
             db.session.commit()
-            
+            # messaggio di conferma aggiunta
             flash(f'Volo {tratta.aeroporto_partenza}→{tratta.aeroporto_arrivo} del {partenza_dt.strftime("%d/%m/%Y %H:%M")} aggiunto con successo!', 'success')
             return redirect(url_for('dashboard_compagnia'))
             
@@ -1244,61 +1238,14 @@ def nuovo_volo():
     
     return render_template('form_volo.html', tratte=compagnia.tratte, aerei=compagnia.aerei)
 
-@app.route('/compagnia/voli/<int:volo_id>/modifica', methods=['GET', 'POST'])
-@login_required
-def modifica_volo(volo_id):
-    """Modifica volo esistente"""
-    if current_user.tipo != 'compagnia':
-        flash('Accesso non autorizzato.', 'error')
-        return redirect(url_for('home'))
-    
-    compagnia = current_user.compagnia
-    
-    # Ottieni il volo da modificare
-    volo = db.session.query(Volo).join(Tratta).filter(
-        Volo.id == volo_id,
-        Tratta.compagnia_id == current_user.id
-    ).first()
-    
-    if not volo:
-        flash('Volo non trovato.', 'error')
-        return redirect(url_for('dashboard_compagnia'))
-    
-    if request.method == 'POST':
-        try:
-            data_partenza = request.form.get('data_partenza')
-            ora_partenza = request.form.get('ora_partenza') 
-            data_arrivo = request.form.get('data_arrivo')
-            ora_arrivo = request.form.get('ora_arrivo')
-            
-            from datetime import datetime
-            partenza_dt = datetime.strptime(f'{data_partenza} {ora_partenza}', '%Y-%m-%d %H:%M')
-            arrivo_dt = datetime.strptime(f'{data_arrivo} {ora_arrivo}', '%Y-%m-%d %H:%M')
-            
-            if partenza_dt >= arrivo_dt:
-                flash('La data di arrivo deve essere successiva alla partenza.', 'error')
-                return render_template('form_volo.html', volo=volo, tratte=compagnia.tratte, aerei=compagnia.aerei, modifica=True)
-            
-            # Aggiorna il volo
-            volo.partenza = partenza_dt
-            volo.arrivo = arrivo_dt
-            
-            db.session.commit()
-            flash('Volo modificato con successo!', 'success')
-            return redirect(url_for('dashboard_compagnia'))
-            
-        except ValueError:
-            flash('Formato data/ora non valido.', 'error')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Errore durante la modifica: {str(e)}', 'error')
-    
-    return render_template('form_volo.html', volo=volo, tratte=compagnia.tratte, aerei=compagnia.aerei, modifica=True)
+"""
+elimina: elimina il volo selezionato
+il volo non puo' essere eliminato se ci sono prenotazioni attive
+"""
 
 @app.route('/compagnia/voli/<int:volo_id>/elimina', methods=['POST'])
 @login_required
 def elimina_volo(volo_id):
-    """Elimina volo"""
     if current_user.tipo != 'compagnia':
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('home'))
@@ -1334,27 +1281,12 @@ def elimina_volo(volo_id):
     
     return redirect(url_for('dashboard_compagnia'))
 
-# ==========================================
-# ERROR HANDLERS
-# ==========================================
-
+"""
+404 e 500: pagine di errore
+"""
 @app.errorhandler(404)
 def not_found(error):
     return render_template('404.html'), 404
-
-@app.route('/api/voli/<int:volo_id>/seatmap')
-def api_seatmap(volo_id):
-    """Endpoint API per ottenere la mappa dei posti di un volo in formato JSON."""
-    try:
-        volo = Volo.query.get(volo_id)
-        if not volo:
-            return jsonify({'success': False, 'error': 'Volo non trovato.'}), 404
-        seat_map = generate_seat_map(volo)
-        # Convertiamo le chiavi (righe) in stringhe per JSON coerente
-        seat_map_json = {str(riga): posti for riga, posti in seat_map.items()}
-        return jsonify({'success': True, 'seat_map': seat_map_json})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.errorhandler(500)
@@ -1362,22 +1294,18 @@ def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
 
-# ==========================================
-# CONTEXT PROCESSORS (per variabili globali nei template)
-# ==========================================
 
 @app.context_processor
 def inject_user():
     return dict(current_user=current_user)
 
-# ==========================================
-# MAIN
-# ==========================================
+"""
+main: main
+"""
 
 if __name__ == '__main__':
     with app.app_context():
-        # Crea le tabelle se non esistono (solo in sviluppo)
-        # In produzione usa Flask-Migrate
+
         db.create_all()
     
     app.run(debug=True, port=5001, host='127.0.0.1')

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Pagina non trovata - BD Airline{% endblock %}
+
+{% block content %}
+<div class="container text-center" style="padding: 80px 20px;">
+    
+    <h1 style="font-size: 3.5rem; margin-bottom: 20px;">Error 404</h1>
+    
+    <h2 style="color: #6c757d; margin-bottom: 30px;">Pagina non trovata</h2>
+    
+    <p style="font-size: 1.2rem; color: #495057; margin-bottom: 40px;">
+        La pagina che stai cercando non esiste o è stata spostata.
+    </p>
+    
+    <div>
+        <a href="{{ url_for('home') }}" class="btn btn-primary" style="margin: 10px;">
+            Torna alla Home
+        </a>
+    </div>
+</div>
+{% endblock %}

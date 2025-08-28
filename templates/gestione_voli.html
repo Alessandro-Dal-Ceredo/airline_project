@@ -7,15 +7,14 @@
         <div class="col-md-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>
-                    <i class="fas fa-plane-departure"></i>
                     Gestione Voli - {{ compagnia.nome_compagnia }}
                 </h2>
                 <div>
                     <a href="{{ url_for('nuovo_volo') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Nuovo Volo
+                        Nuovo Volo
                     </a>
                     <a href="{{ url_for('dashboard_compagnia') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Dashboard
+                        Dashboard
                     </a>
                 </div>
             </div>
@@ -30,9 +29,7 @@
                                     <h5>Totale Voli</h5>
                                     <h3>{{ totale_voli }}</h3>
                                 </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-plane fa-2x"></i>
-                                </div>
+                                <div class="align-self-center"></div>
                             </div>
                         </div>
                     </div>
@@ -45,9 +42,7 @@
                                     <h5>Voli Futuri</h5>
                                     <h3>{{ voli_futuri }}</h3>
                                 </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-calendar-plus fa-2x"></i>
-                                </div>
+                                <div class="align-self-center"></div>
                             </div>
                         </div>
                     </div>
@@ -60,9 +55,7 @@
                                     <h5>Voli Pieni</h5>
                                     <h3>{{ voli_pieni }}</h3>
                                 </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-users fa-2x"></i>
-                                </div>
+                                <div class="align-self-center"></div>
                             </div>
                         </div>
                     </div>
@@ -72,7 +65,7 @@
             <!-- Form filtri -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5><i class="fas fa-filter"></i> Filtri di Ricerca</h5>
+                    <h5>Filtri di Ricerca</h5>
                 </div>
                 <div class="card-body">
                     <form method="GET" action="{{ url_for('gestione_voli') }}">
@@ -147,10 +140,10 @@
                             </div>
                             <div class="col-md-9 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary me-2">
-                                    <i class="fas fa-search"></i> Filtra
+                                    Filtra
                                 </button>
                                 <a href="{{ url_for('gestione_voli') }}" class="btn btn-outline-secondary">
-                                    <i class="fas fa-times"></i> Reset
+                                    Reset
                                 </a>
                             </div>
                         </div>
@@ -161,7 +154,7 @@
             <!-- Tabella voli -->
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5><i class="fas fa-list"></i> Lista Voli ({{ totale_voli }} risultati)</h5>
+                    <h5>Lista Voli ({{ totale_voli }} risultati)</h5>
                 </div>
                 <div class="card-body p-0">
                     {% if voli %}
@@ -189,7 +182,7 @@
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <span class="badge bg-secondary me-1">{{ volo.tratta.aeroporto_partenza }}</span>
-                                            <i class="fas fa-arrow-right mx-1 text-muted"></i>
+                                            <span class="mx-1 text-muted">→</span>
                                             <span class="badge bg-secondary">{{ volo.tratta.aeroporto_arrivo }}</span>
                                         </div>
                                     </td>
@@ -251,7 +244,6 @@
                     </div>
                     {% else %}
                     <div class="text-center py-5">
-                        <i class="fas fa-plane-slash fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">Nessun volo trovato</h5>
                         <p class="text-muted">
                             {% if request.args %}
@@ -262,7 +254,7 @@
                         </p>
                         {% if not request.args %}
                         <a href="{{ url_for('nuovo_volo') }}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Crea il tuo primo volo
+                            Crea il tuo primo volo
                         </a>
                         {% endif %}
                     </div>
@@ -289,9 +281,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Conferma eliminazione con più dettagli
-function confirmDelete(voloId, tratta, data) {
-    return confirm(`Sei sicuro di voler eliminare il volo #${voloId} (${tratta}) del ${data}?\n\nQuesta azione non può essere annullata.`);
-}
 </script>
 {% endblock %}
