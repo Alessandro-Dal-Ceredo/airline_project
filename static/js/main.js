@@ -1,17 +1,11 @@
-// Main JavaScript file - Simplified without external dependencies
-
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize tabs
     initializeTabs();
     
-    // Initialize alerts
     initializeAlerts();
-    
-    // Initialize copy links in bottom bar
+
     initializeCopyLinks();
 });
 
-// Tab functionality
 function initializeTabs() {
     const tabs = document.querySelectorAll('.nav-tabs a');
     const tabContents = document.querySelectorAll('.tab-pane');
@@ -20,14 +14,11 @@ function initializeTabs() {
         tab.addEventListener('click', function(e) {
             e.preventDefault();
             
-            // Remove active from all tabs
             tabs.forEach(t => t.parentElement.classList.remove('active'));
             tabContents.forEach(content => content.style.display = 'none');
             
-            // Add active to current tab
             this.parentElement.classList.add('active');
             
-            // Show corresponding content
             const targetId = this.getAttribute('href').substring(1);
             const targetContent = document.getElementById(targetId);
             if (targetContent) {
@@ -36,7 +27,6 @@ function initializeTabs() {
         });
     });
     
-    // Show first active tab on init
     const activeTab = document.querySelector('.nav-tabs .active a');
     if (activeTab) {
         const targetId = activeTab.getAttribute('href').substring(1);
@@ -47,7 +37,6 @@ function initializeTabs() {
     }
 }
 
-// Alert functions
 function showAlert(alertType, message) {
     var alertDiv = document.querySelector('.alert.' + alertType);
     if (alertDiv) {
@@ -71,7 +60,7 @@ function hideAlert(alertType) {
 }
 
 function initializeAlerts() {
-    // Auto-hide alerts after 5 seconds
+    // Nasconde in automatico gli alert in 5 sec
     const visibleAlerts = document.querySelectorAll('.alert.visible');
     visibleAlerts.forEach(alert => {
         setTimeout(() => {
@@ -80,7 +69,7 @@ function initializeAlerts() {
     });
 }
 
-// Copy link functionality for bottom bar
+// Copia i link nel footer
 function initializeCopyLinks() {
     const copyLinks = document.querySelectorAll('.copy-link');
     
@@ -90,7 +79,6 @@ function initializeCopyLinks() {
             
             const contentToCopy = this.textContent.split(': ')[1];
             if (contentToCopy) {
-                // Create temporary textarea to copy text
                 const textarea = document.createElement('textarea');
                 textarea.value = contentToCopy;
                 textarea.style.position = 'absolute';

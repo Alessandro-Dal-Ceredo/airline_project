@@ -1,0 +1,541 @@
+{% extends "base.html" %}
+
+{% block title %}Prenota Volo - BD Airline{% endblock %}
+
+{% block head %}
+<style>
+/* Stili specifici per la prenotazione */
+.booking-container {
+    text-align: left !important;
+}
+.booking-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin: 20px 0;
+}
+.booking-main {
+    flex: 2;
+    min-width: 300px;
+}
+.booking-sidebar {
+    flex: 1;
+    min-width: 280px;
+    max-width: 350px;
+}
+.class-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 15px 0;
+}
+.class-card {
+    display: block;
+    cursor: pointer;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    transition: all 0.2s;
+    background: #fff;
+}
+.class-card:hover, .class-card.selected {
+    border-color: #007bff;
+    background: #f8f9ff;
+}
+.extras-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+    margin: 15px 0;
+}
+.extra-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    transition: all 0.2s;
+    background: #fff;
+}
+.extra-item:hover, .extra-item.selected {
+    border-color: #007bff;
+    background: #f8f9ff;
+}
+.extra-info {
+    flex: 1;
+}
+.extra-price {
+    font-weight: bold;
+    color: #007bff;
+}
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 1.2em;
+    margin: 15px 0;
+    padding-top: 15px;
+    border-top: 2px solid #ddd;
+}
+.seat-selection {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin: 15px 0;
+}
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+}
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-dialog {
+    background: #fff;
+    border-radius: 5px;
+    max-width: 700px;
+    width: 90%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+/* Posti */
+.seat-legend {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+.seat-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #ddd;
+    display: inline-block;
+    margin-right: 8px;
+}
+.seat-box.occupied {
+    background: #e5e5e5;
+}
+.seat-grid {
+    max-width: 500px;
+    margin: 0 auto;
+}
+.seat-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 8px 0;
+    gap: 8px;
+}
+.seat-row-number {
+    width: 30px;
+    text-align: center;
+    color: #666;
+    font-weight: bold;
+}
+.seat-item {
+    width: 35px;
+    height: 35px;
+    border: 2px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: all 0.2s;
+    font-size: 12px;
+    background: #fff;
+}
+/* Colori base per classe */
+.seat-item.first {
+    background: #ffd700;
+    border-color: #ffb300;
+    color: #8b6914;
+}
+.seat-item.business {
+    background: #4a90e2;
+    border-color: #357abd;
+    color: #fff;
+}
+.seat-item.economy {
+    background: #e8f4f8;
+    border-color: #b8dce8;
+    color: #2c5aa0;
+}
+/* Stati hover */
+.seat-item:hover:not(.occupied):not(.disabled) {
+    border-color: #007bff;
+    transform: scale(1.1);
+}
+.seat-item.first:hover:not(.occupied):not(.disabled) {
+    background: #ffed4a;
+    border-color: #ffc107;
+}
+.seat-item.business:hover:not(.occupied):not(.disabled) {
+    background: #5ba0f2;
+    border-color: #4a90e2;
+}
+.seat-item.economy:hover:not(.occupied):not(.disabled) {
+    background: #f0f9fb;
+    border-color: #a0d1e4;
+}
+/* Stato selezionato */
+.seat-item.selected {
+    background: #28a745 !important;
+    color: #fff !important;
+    border-color: #28a745 !important;
+    transform: scale(1.1);
+}
+/* Stato occupato */
+.seat-item.occupied {
+    background: #f5f5f5 !important;
+    color: #999 !important;
+    border-color: #ddd !important;
+    cursor: not-allowed;
+}
+/* Stato disabilitato */
+.seat-item.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.aisle-gap {
+    width: 20px;
+}
+@media (max-width: 768px) {
+    .booking-row {
+        flex-direction: column;
+    }
+    .booking-sidebar {
+        order: -1;
+        max-width: none;
+    }
+    .class-options {
+        grid-template-columns: 1fr;
+    }
+    .extras-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container booking-container">
+  <!-- Intestazione Volo -->
+  <div class="card">
+    <h2>{{ volo.tratta.aeroporto_partenza_obj.citta }} ({{ volo.tratta.aeroporto_partenza }}) → {{ volo.tratta.aeroporto_arrivo_obj.citta }} ({{ volo.tratta.aeroporto_arrivo }})</h2>
+    <p>{{ volo.partenza.strftime('%d/%m/%Y %H:%M') }} – {{ volo.arrivo.strftime('%d/%m/%Y %H:%M') }}</p>
+    
+    <div class="row">
+      <div class="col-3"><strong>Compagnia:</strong><br>{{ volo.tratta.compagnia.nome_compagnia }}</div>
+      <div class="col-3"><strong>Aereo:</strong><br>{{ volo.aereo.modello }}</div>
+      <div class="col-3"><strong>Posti disponibili:</strong><br>{{ volo.posti_disponibili }}</div>
+      <div class="col-3"><strong>Durata:</strong><br>{{ volo.durata }}</div>
+    </div>
+  </div>
+
+  <form id="bookingForm" method="POST" action="{{ url_for('book_flight', volo_id=volo.id) }}">
+    <div class="booking-row">
+      <div class="booking-main">
+        <!-- 1. Selezione Classe -->
+        <div class="card">
+          <h3>1. Scegli la classe</h3>
+          <div class="class-options">
+            {% for classe, prezzo in prezzi.items() %}
+            <label class="class-card">
+              <input type="radio" name="classe" value="{{ classe }}" data-price="{{ prezzo }}" {% if loop.first %}checked{% endif %}>
+              <strong>{{ classe.title() }}</strong><br>
+              <span class="text-muted">€{{ "%.0f"|format(prezzo) }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- 2. Selezione Posto -->
+        <div class="card">
+          <h3>2. Seleziona il posto (opzionale)</h3>
+          <div class="seat-selection">
+            <span>Posto selezionato: <strong id="current-seat">Nessuno</strong></span>
+            <button type="button" id="openSeatModal" class="btn btn-primary">Scegli posto</button>
+            <button type="button" id="clearSeat" class="btn btn-warning">Rimuovi</button>
+          </div>
+          <input type="hidden" name="posto" id="selectedSeat">
+        </div>
+
+        <!-- 3. Servizi Extra -->
+        {% if extra_disponibili %}
+        <div class="card">
+          <h3>3. Servizi extra</h3>
+          <div class="extras-grid">
+            {% for extra in extra_disponibili %}
+            <label class="extra-item">
+              <input type="checkbox" name="extra" value="{{ extra.id }}" data-price="{{ extra.prezzo }}">
+              <div class="extra-info">
+                <strong>{{ extra.nome }}</strong>
+              </div>
+              <div class="extra-price">+€{{ "%.0f"|format(extra.prezzo) }}</div>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Riepilogo Prenotazione -->
+      <div class="booking-sidebar">
+        <div class="card">
+          <h3>Riepilogo Prenotazione</h3>
+          <div class="summary-row">
+            <span>Classe:</span>
+            <span id="summary-class-name">—</span>
+          </div>
+          <div class="summary-row">
+            <span>Prezzo base:</span>
+            <span id="summary-base-price">—</span>
+          </div>
+          <div id="summary-extras"></div>
+          <div class="summary-row">
+            <span>Posto:</span>
+            <span id="summary-seat">Nessuno</span>
+          </div>
+          <div class="summary-total">
+            <span>Totale:</span>
+            <span id="summary-total-price">—</span>
+          </div>
+          <button type="submit" class="btn btn-success">Conferma e Paga</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Modal selezione posti -->
+<div id="seatModal" class="modal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <strong>Seleziona il posto</strong>
+      <button type="button" id="closeSeatModal" class="btn">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="seat-legend">
+        <span><span class="seat-box" style="background:#ffd700; border-color:#ffb300;"></span> First Class</span>
+        <span><span class="seat-box" style="background:#4a90e2; border-color:#357abd;"></span> Business</span>
+        <span><span class="seat-box" style="background:#e8f4f8; border-color:#b8dce8;"></span> Economy</span>
+        <span><span class="seat-box occupied"></span> Occupato</span>
+        <span><span class="seat-box" style="background:#28a745; border-color:#28a745;"></span> Selezionato</span>
+        <span><span class="seat-box" style="opacity:0.4;"></span> Non disponibile</span>
+      </div>
+      <div class="seat-grid" id="seatGrid">
+        {% for row in posti_aereo.keys()|list|sort %}
+        <div class="seat-row">
+          <div class="seat-row-number">{{ row }}</div>
+          {% set seats = posti_aereo[row] %}
+          {% for seat in seats %}
+            <div class="seat-item {{ seat.classe }} {% if not seat.disponibile %}occupied{% endif %}" 
+                 data-seat="{{ seat.numero }}" 
+                 data-class="{{ seat.classe }}"
+                 title="{{ seat.classe.title() }} - {{ seat.numero }}">
+              {{ seat.numero[-1] }}
+            </div>
+            {% if loop.index == 3 %}<div class="aisle-gap"></div>{% endif %}
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="confirmSeat" class="btn btn-primary">Conferma posto</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const formatEuro = (n) => `€${(parseFloat(n)||0).toFixed(0)}`;
+
+  function updateClassCards(){
+    document.querySelectorAll('.class-card').forEach(card=>{
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio && radio.checked) card.classList.add('selected'); else card.classList.remove('selected');
+    });
+  }
+
+  function updateSummary(){
+    const selectedClass = document.querySelector('input[name="classe"]:checked');
+    if (!selectedClass) return;
+
+    const base = parseFloat(selectedClass.dataset.price || '0');
+    document.getElementById('summary-class-name').textContent = selectedClass.value.charAt(0).toUpperCase() + selectedClass.value.slice(1);
+    document.getElementById('summary-base-price').textContent = formatEuro(base);
+
+    let extrasTotal = 0;
+    const box = document.getElementById('summary-extras');
+    box.innerHTML = '';
+    document.querySelectorAll('input[name="extra"]:checked').forEach(chk=>{
+      const price = parseFloat(chk.dataset.price || '0');
+      extrasTotal += price;
+      
+      // Trova il nome dell'extra dalla struttura HTML
+      const extraItem = chk.closest('.extra-item');
+      const extraNameEl = extraItem.querySelector('.extra-info strong');
+      const name = extraNameEl ? extraNameEl.textContent.trim() : 'Extra';
+      
+      const row = document.createElement('div');
+      row.className = 'summary-row';
+      row.innerHTML = `<span>${name}</span><span>${formatEuro(price)}</span>`;
+      box.appendChild(row);
+    });
+
+    document.getElementById('summary-total-price').textContent = formatEuro(base + extrasTotal);
+    updateClassCards();
+  }
+
+  function updateSeatAvailability(){
+    const selectedClass = document.querySelector('input[name="classe"]:checked');
+    if (!selectedClass) return;
+    
+    const selectedClassName = selectedClass.value;
+    
+    document.querySelectorAll('.seat-item').forEach(seat=>{
+      const seatClass = seat.dataset.class;
+      
+      if (seatClass === selectedClassName) {
+        // Rimuovi disabilitazione per posti della classe selezionata
+        seat.classList.remove('disabled');
+      } else {
+        // Disabilita posti di altre classi
+        seat.classList.add('disabled');
+        // Rimuovi selezione se era selezionato un posto di classe diversa
+        if (seat.classList.contains('selected')) {
+          seat.classList.remove('selected');
+          tempSelected = '';
+        }
+      }
+    });
+  }
+
+  // Variabile globale per il posto temporaneamente selezionato nel modal
+  let tempSelected = '';
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const selectedSeatInput = document.getElementById('selectedSeat');
+    tempSelected = selectedSeatInput.value || '';
+    
+    updateSummary();
+    updateClassCards();
+    updateSeatAvailability();
+
+    document.querySelectorAll('input[name="classe"]').forEach(el=>el.addEventListener('change', ()=>{updateSummary(); updateClassCards(); updateSeatAvailability();}));
+    document.querySelectorAll('input[name="extra"]').forEach(el=>el.addEventListener('change', ()=>{updateSummary(); updateExtraCards();}));
+    
+    function updateExtraCards(){
+      document.querySelectorAll('.extra-item').forEach(item=>{
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox && checkbox.checked) {
+          item.classList.add('selected');
+        } else {
+          item.classList.remove('selected');
+        }
+      });
+    }
+
+    const seatModal = document.getElementById('seatModal');
+    const openSeatBtn = document.getElementById('openSeatModal');
+    const closeSeatBtn = document.getElementById('closeSeatModal');
+    const confirmSeatBtn = document.getElementById('confirmSeat');
+    const clearSeatBtn = document.getElementById('clearSeat');
+    const currentSeatLabel = document.getElementById('current-seat');
+    const summarySeat = document.getElementById('summary-seat');
+
+    function openModal(){
+      seatModal.classList.add('show');
+      tempSelected = selectedSeatInput.value || '';
+      
+      // Aggiorna disponibilità posti prima di aprire il modal
+      updateSeatAvailability();
+      
+      document.querySelectorAll('.seat-item.selected').forEach(s=>s.classList.remove('selected'));
+      if (tempSelected){
+        const el = document.querySelector(`.seat-item[data-seat="${tempSelected}"]`);
+        if (el) el.classList.add('selected');
+      }
+    }
+    function closeModal(){ seatModal.classList.remove('show'); }
+
+    openSeatBtn.addEventListener('click', openModal);
+    closeSeatBtn.addEventListener('click', closeModal);
+    seatModal.addEventListener('click', (e)=>{ if (e.target === seatModal) closeModal(); });
+
+    document.querySelectorAll('.seat-item').forEach(seat=>{
+      if (seat.classList.contains('occupied')) return;
+      seat.addEventListener('click', ()=>{
+        // Non permettere selezione se il posto è disabilitato (classe diversa)
+        if (seat.classList.contains('disabled')) {
+          return;
+        }
+        
+        document.querySelectorAll('.seat-item.selected').forEach(s=>s.classList.remove('selected'));
+        seat.classList.add('selected');
+        tempSelected = seat.dataset.seat;
+      });
+    });
+
+    confirmSeatBtn.addEventListener('click', ()=>{
+      selectedSeatInput.value = tempSelected;
+      const label = tempSelected || 'Nessuno';
+      currentSeatLabel.textContent = label;
+      summarySeat.textContent = label;
+      closeModal();
+    });
+
+    clearSeatBtn.addEventListener('click', ()=>{
+      tempSelected = '';
+      selectedSeatInput.value = '';
+      currentSeatLabel.textContent = 'Nessuno';
+      summarySeat.textContent = 'Nessuno';
+      document.querySelectorAll('.seat-item.selected').forEach(s=>s.classList.remove('selected'));
+    });
+  });
+})();
+</script>
+{% endblock %}

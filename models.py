@@ -36,7 +36,7 @@ class Utente(UserMixin, db.Model):
     
     id = Column(Integer, primary_key=True)
     username = Column(String(50), unique=True, nullable=False)
-    password = Column(String(200), nullable=False)  # Spazio per password hashate
+    password = Column(String(200), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     tipo = Column(tipo_utente_enum, nullable=False)
     createdat = Column(DateTime, nullable=False, default=datetime.utcnow)

@@ -1,0 +1,54 @@
+.alert-container {
+    position: fixed;
+    align-self: center;
+    right: 30%;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: flex-end;
+}
+
+.alert {
+    width: 300px;
+    padding: 10px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.5s ease;
+}
+
+.alert p {
+    text-align: left;
+    font-size: smaller;
+    color: white;
+}
+
+.visible {
+    opacity: 1;
+}
+
+.danger {
+    background-color: #ff3333;
+}
+
+.success {
+    background-color: #33cc33;
+}
+
+.info {
+    background-color: #3399ff;
+}
+
+.warning {
+    background-color: #ff9933;
+}
+
+.closebtn {
+    cursor: pointer;
+    float: right;
+    font-size: 22px;
+}
+
+.alert-error {
+    background-color: #ff3333;
+}

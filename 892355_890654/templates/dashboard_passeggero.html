@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Le Mie Prenotazioni - {{ passeggero.nome_completo }}{% endblock %}
+
+{% block content %}
+<h1>Ciao, {{ passeggero.nome_completo }}!</h1>
+<!-- Sezione Prenotazioni -->
+<div class="card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Le Mie Prenotazioni</h2>
+        <!-- Filtri -->
+        <div>
+            <a href="{{ url_for('dashboard_passeggero', stato='tutte') }}" 
+               class="btn {% if filtro_corrente == 'tutte' %}btn-primary{% else %}btn{% endif %}">
+                Tutte
+            </a>
+            <a href="{{ url_for('dashboard_passeggero', stato='confermate') }}" 
+               class="btn {% if filtro_corrente == 'confermate' %}btn-success{% else %}btn{% endif %}">
+                Confermate
+            </a>
+            <a href="{{ url_for('dashboard_passeggero', stato='cancellate') }}" 
+               class="btn {% if filtro_corrente == 'cancellate' %}btn-danger{% else %}btn{% endif %}">
+                Cancellate
+            </a>
+        </div>
+    </div>
+    {% if prenotazioni %}
+        <div class="dashboard-grid">
+            {% for prenotazione in prenotazioni %}
+            <div class="dashboard-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3>Prenotazione #{{ prenotazione.id }}</h3>
+                    <span class="badge {% if prenotazione.stato == 'confermata' %}badge-success{% elif prenotazione.stato == 'cancellata' %}badge-danger{% else %}badge-warning{% endif %}">
+                        {{ prenotazione.stato.title() }}
+                    </span>
+                </div>
+                
+                {% for biglietto in prenotazione.biglietti %}
+                <div style="border-left: 3px solid #007bff; padding-left: 10px; margin: 10px 0;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Posto {{ biglietto.posto }}</strong> - 
+                            <span class="badge badge-info">{{ biglietto.classe.title() }}</span>
+                        </div>
+                        <small class="text-muted">Volo #{{ biglietto.volo_id }}</small>
+                    </div>
+                    {% if biglietto.volo %}
+                    <p class="text-muted">
+                        {{ biglietto.volo.tratta.aeroporto_partenza }} → {{ biglietto.volo.tratta.aeroporto_arrivo }}<br>
+                        {{ biglietto.volo.partenza.strftime('%d/%m/%Y alle %H:%M') }}
+                    </p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                    <p><strong>Costo Totale:</strong> <span class="text-success">€ {{ "%.2f"|format(prenotazione.costo_totale) }}</span></p>
+                    <p><strong>Data Acquisto:</strong> {{ prenotazione.data_acquisto.strftime('%d/%m/%Y alle %H:%M') }}</p>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <a href="{{ url_for('dettagli_prenotazione', prenotazione_id=prenotazione.id) }}" class="btn btn-primary">
+                        Dettagli
+                    </a>
+                    {% if prenotazione.stato == 'confermata' %}
+                    <form method="POST" action="{{ url_for('cancel_booking', prenotazione_id=prenotazione.id) }}" style="display: inline;">
+                        <button type="submit" class="btn btn-danger"
+                                onclick="return confirm('Sei sicuro di voler cancellare questa prenotazione?')">
+                            Cancella
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center">
+            {% if filtro_corrente == 'tutte' %}
+                <h3>Nessuna Prenotazione</h3>
+                <p>Non hai ancora prenotato alcun volo.</p>
+            {% elif filtro_corrente == 'confermate' %}
+                <h3>Nessuna Prenotazione Confermata</h3>
+                <p>Non ci sono prenotazioni confermate.</p>
+            {% elif filtro_corrente == 'cancellate' %}
+                <h3>Nessuna Prenotazione Cancellata</h3>
+                <p>Non ci sono prenotazioni cancellate.</p>
+            {% endif %}
+            <a href="{{ url_for('home') }}" class="btn btn-success">Cerca Voli</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

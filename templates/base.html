@@ -15,7 +15,7 @@
     {% block head %}{% endblock %}
 </head>
 <body>
-    <!-- Navbar -->
+    <!-- Barra di Navigazione (Header) -->
     <div class="navbar">
         <span class="logo">✈ BD Airline</span>
         <ul class="nav-links">
@@ -34,11 +34,9 @@
         </ul>
     </div>
     
-    <!-- Main Container -->
     <div class="container">
         {% block content %}{% endblock %}
-        
-        <!-- Alert Container for Flash Messages -->
+        <!-- Alert -->
         <div class="alert-container">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -52,7 +50,7 @@
                 {% endif %}
             {% endwith %}
             
-            <!-- Hidden alerts for JavaScript use -->
+            <!-- Alert per Javascript -->
             <div class="alert danger">
                 <span class="closebtn" onclick="hideAlert('danger')">&times;</span>
                 <strong>Errore!</strong>
@@ -79,13 +77,11 @@
         </div>
     </div>
     
-    <!-- Bottom Bar -->
+    <!-- Footer-->
     <div class="bottom-bar">
         <a href="#" class="copy-link">Tel: +39 123 456 7890</a>
         <a href="#" class="copy-link">Email: info@bdairline.com</a>
     </div>
-    
-    <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     
     {% block scripts %}{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Login - BD Airline{% endblock %}
+
+{% block content %}
+<div class="form_container">
+    <h2>Login BD Airline</h2>
+    
+    <form method="POST">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required>
+        
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+        
+        <button type="submit">Accedi</button>
+    </form>
+    
+    <div style="margin-top: 20px; text-align: center;">
+        <p>Non hai un account?</p>
+        <a href="{{ url_for('register') }}">Registrati qui</a>
+    </div>
+</div>
+{% endblock %}

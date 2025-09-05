@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if aereo %}Modifica Aereo{% else %}Nuovo Aereo{% endif %} - Dashboard Compagnia
+{% endblock %}
+
+{% block content %}
+<div class="form_container">
+    <h2>{% if aereo %}Modifica Aereo: {{ aereo.modello }}{% else %}Aggiungi Nuovo Aereo{% endif %}</h2>
+    
+    <form method="POST">
+        <label for="modello">Modello Aereo *</label>
+        <input type="text" 
+               id="modello" 
+               name="modello" 
+               value="{{ aereo.modello if aereo else '' }}"
+               placeholder="es. Airbus A320, Boeing 737-800"
+               required>
+        <small>Inserisci il modello dell'aereo (es. A320, B737, A350)</small>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="posti_economy">Economy *</label>
+                <input type="number" 
+                       id="posti_economy" 
+                       name="posti_economy" 
+                       value="{{ aereo.posti_economy if aereo else '' }}"
+                       min="0" 
+                       max="500"
+                       required>
+            </div>
+            <div class="form-group">
+                <label for="posti_business">Business</label>
+                <input type="number" 
+                       id="posti_business" 
+                       name="posti_business" 
+                       value="{{ aereo.posti_business if aereo else '0' }}"
+                       min="0"  
+                       max="100">
+            </div>
+            <div class="form-group">
+                <label for="posti_first">First Class</label>
+                <input type="number" 
+                       id="posti_first" 
+                       name="posti_first" 
+                       value="{{ aereo.posti_first if aereo else '0' }}"
+                       min="0" 
+                       max="50">
+            </div>
+        </div>
+
+        <div class="card" style="background-color: #d1ecf1; padding: 10px; margin: 10px 0;">
+            <strong>Totale posti:</strong> 
+            <span id="totale-posti">{{ aereo.posti_totali if aereo else '0' }}</span>
+        </div>
+        
+        <div class="d-flex justify-content-between" style="margin-top: 20px;">
+            <a href="{{ url_for('dashboard_compagnia') }}" class="btn">← Torna alla Dashboard</a>
+            
+            <button type="submit" class="btn btn-primary">
+                {% if aereo %}Salva Modifiche{% else %}Aggiungi Aereo{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+// Calcolo automatico totale posti
+function calcolaTotale() {
+    const economy = parseInt(document.getElementById('posti_economy').value) || 0;
+    const business = parseInt(document.getElementById('posti_business').value) || 0;
+    const first = parseInt(document.getElementById('posti_first').value) || 0;
+    const totale = economy + business + first;
+    document.getElementById('totale-posti').textContent = totale;
+}
+
+document.getElementById('posti_economy').addEventListener('input', calcolaTotale);
+document.getElementById('posti_business').addEventListener('input', calcolaTotale);
+document.getElementById('posti_first').addEventListener('input', calcolaTotale);
+
+document.addEventListener('DOMContentLoaded', calcolaTotale);
+</script>
+{% endblock %}

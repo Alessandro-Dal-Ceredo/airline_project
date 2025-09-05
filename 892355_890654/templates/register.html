@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Registrazione - BD Airline{% endblock %}
+
+{% block content %}
+<div class="form_container">
+    <h2>Registrazione BD Airline</h2>
+    
+    <form method="POST" id="registerForm">
+        <!-- Dati base -->
+        <label for="username">Username *</label>
+        <input type="text" id="username" name="username" required>
+        
+        <label for="email">Email *</label>
+        <input type="email" id="email" name="email" required>
+        
+        <label for="password">Password *</label>
+        <input type="password" id="password" name="password" required>
+        
+        <!-- Tipo di account -->
+        <label>Tipo di account *</label>
+        <div style="margin: 10px 0;">
+            <label style="margin-right: 20px;">
+                Passeggero<input type="radio" name="tipo" id="tipoPasseggero" value="passeggero" checked>
+           
+                 Compagnia Aerea
+                <input type="radio" name="tipo" id="tipoCompagnia" value="compagnia">
+            </label>
+        </div>
+        
+        <!-- Campi specifici passeggero -->
+        <div id="campiPasseggero">
+            <label for="nome">Nome *</label>
+            <input type="text" id="nome" name="nome">
+            
+            <label for="cognome">Cognome *</label>
+            <input type="text" id="cognome" name="cognome">
+        </div>
+        
+        <!-- Campi specifici compagnia -->
+        <div id="campiCompagnia" style="display: none;">
+            <label for="nome_compagnia">Nome Compagnia *</label>
+            <input type="text" id="nome_compagnia" name="nome_compagnia">
+        </div>
+        
+        <button type="submit">Registrati</button>
+    </form>
+    
+    <div style="margin-top: 20px; text-align: center;">
+        <p>Hai già un account?</p>
+        <a href="{{ url_for('login') }}">Accedi qui</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Simple account type toggle
+document.addEventListener('DOMContentLoaded', function() {
+    function toggleFields() {
+        const isPasseggero = document.getElementById('tipoPasseggero').checked;
+        document.getElementById('campiPasseggero').style.display = isPasseggero ? 'block' : 'none';
+        document.getElementById('campiCompagnia').style.display = isPasseggero ? 'none' : 'block';
+        
+        // Update required attributes
+        document.getElementById('nome').required = isPasseggero;
+        document.getElementById('cognome').required = isPasseggero;
+        document.getElementById('nome_compagnia').required = !isPasseggero;
+    }
+    
+    document.getElementById('tipoPasseggero').addEventListener('change', toggleFields);
+    document.getElementById('tipoCompagnia').addEventListener('change', toggleFields);
+    
+    toggleFields();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Home - BD Airline{% endblock %}
+
+{% block content %}
+<h1>Benvenuto in BD Airline</h1>
+
+<!-- Modulo di ricerca -->
+<div class="search-box">
+    <h2>Cerca il tuo volo</h2>
+    <form action="{{ url_for('search_flights') }}" method="GET">
+        <div class="form-group">
+            <label>Partenza</label>
+            <select name="origine" required>
+                <option value="">Seleziona aeroporto</option>
+                {% for aeroporto in aeroporti %}
+                <option value="{{ aeroporto.codice }}">
+                    {{ aeroporto.codice }} - {{ aeroporto.citta }}, {{ aeroporto.paese }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Destinazione</label>
+            <select name="destinazione" required>
+                <option value="">Seleziona aeroporto</option>
+                {% for aeroporto in aeroporti %}
+                <option value="{{ aeroporto.codice }}">
+                    {{ aeroporto.codice }} - {{ aeroporto.citta }}, {{ aeroporto.paese }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Data partenza</label>
+            <input type="date" name="data_partenza" required>
+        </div>
+        
+        <div class="form-group">
+            <div>
+                <label>
+                    Con scali (consigliato)
+                    <input type="radio" name="tipo_ricerca" value="con_scali" checked>
+                </label>
+                <label>
+                    Solo voli diretti
+                    <input type="radio" name="tipo_ricerca" value="solo_diretti">
+                </label>
+            </div>
+            <small style="color: #666; display: block; margin-top: 5px;">
+                La ricerca con scali include voli diretti e con connessioni (min. 2h di attesa)
+            </small>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Cerca voli</button>
+    </form>
+</div>
+
+<!-- Destinazioni Popolari -->
+<div class="mt-3">
+    <h3>Destinazioni Più Popolari</h3>
+    {% if destinazioni_popolari %}
+        <div class="dashboard-grid">
+            {% for destinazione in destinazioni_popolari %}
+            <div class="dashboard-card">
+                <p>{{ destinazione.citta }} ({{ destinazione.codice }})</p>
+                <p><strong>{{ destinazione.paese }}</strong></p>
+                <p class="text-primary">
+                    <strong>{{ destinazione.num_prenotazioni }}</strong> prenotazioni negli ultimi 30 giorni!
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card">
+            <p>Le destinazioni più popolari appariranno qui quando ci saranno delle prenotazioni.</p>
+        </div>
+    {% endif %}
+</div>
+
+{% if not current_user.is_authenticated %}
+<div class="card mt-3">
+    <h3>Non hai ancora un account?</h3>
+    <p>Registrati ora per gestire le tue prenotazioni!</p>
+    <div class="text-center">
+        <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
+        <a href="{{ url_for('register') }}" class="btn btn-success">Register</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Funzione per validare la selezione (non può selezionare stesso aeroporto)
+function validateAirports() {
+    const origine = document.querySelector('select[name="origine"]').value;
+    const destinazione = document.querySelector('select[name="destinazione"]').value;
+    
+    if (origine && destinazione && origine === destinazione) {
+        alert('Aeroporto di partenza e destinazione non possono essere uguali!');
+        return false;
+    }
+    return true;
+}
+
+// Aggiungi validazione al form
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (!validateAirports()) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

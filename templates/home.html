@@ -5,7 +5,7 @@
 {% block content %}
 <h1>Benvenuto in BD Airline</h1>
 
-<!-- Search Form -->
+<!-- Modulo di ricerca -->
 <div class="search-box">
     <h2>Cerca il tuo volo</h2>
     <form action="{{ url_for('search_flights') }}" method="GET">
@@ -80,7 +80,6 @@
     {% endif %}
 </div>
 
-<!-- CTA Section -->
 {% if not current_user.is_authenticated %}
 <div class="card mt-3">
     <h3>Non hai ancora un account?</h3>

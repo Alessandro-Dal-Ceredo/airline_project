@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BD Airline - Sistema di prenotazione voli">
+    <meta name="author" content="BD Airline">
+    
+    <title>{% block title %}BD Airline - Sistema di Prenotazione Voli{% endblock %}</title>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/alert.css') }}">
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Barra di Navigazione (Header) -->
+    <div class="navbar">
+        <span class="logo">✈ BD Airline</span>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('home') }}">Home</a></li>
+            {% if current_user.is_authenticated %}
+                {% if current_user.tipo == 'compagnia' %}
+                    <li><a href="{{ url_for('dashboard_compagnia') }}">Dashboard</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('dashboard_passeggero') }}">Dashboard</a></li>
+                {% endif %}
+                <li><a href="{{ url_for('logout') }}">Logout ({{ current_user.username }})</a></li>
+            {% else %}
+                <li><a href="{{ url_for('login') }}">Login</a></li>
+                <li><a href="{{ url_for('register') }}">Register</a></li>
+            {% endif %}
+        </ul>
+    </div>
+    
+    <div class="container">
+        {% block content %}{% endblock %}
+        <!-- Alert -->
+        <div class="alert-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert {{ 'danger' if category == 'error' else category }} visible">
+                            <span class="closebtn" onclick="hideAlert('{{ 'danger' if category == 'error' else category }}')">&times;</span>
+                            <strong>{{ category|capitalize }}!</strong>
+                            <p>{{ message }}</p>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Alert per Javascript -->
+            <div class="alert danger">
+                <span class="closebtn" onclick="hideAlert('danger')">&times;</span>
+                <strong>Errore!</strong>
+                <p name="p_danger"></p>
+            </div>
+            
+            <div class="alert success">
+                <span class="closebtn" onclick="hideAlert('success')">&times;</span>
+                <strong>Successo!</strong>
+                <p name="p_success"></p>
+            </div>
+            
+            <div class="alert info">
+                <span class="closebtn" onclick="hideAlert('info')">&times;</span>
+                <strong>Info!</strong>
+                <p name="p_info"></p>
+            </div>
+            
+            <div class="alert warning">
+                <span class="closebtn" onclick="hideAlert('warning')">&times;</span>
+                <strong>Attenzione!</strong>
+                <p name="p_warning"></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer-->
+    <div class="bottom-bar">
+        <a href="#" class="copy-link">Tel: +39 123 456 7890</a>
+        <a href="#" class="copy-link">Email: info@bdairline.com</a>
+    </div>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
